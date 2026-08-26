@@ -514,6 +514,12 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
     </div>
 
     <div class="set">
+      <h3>Catalogue</h3>
+      <p class="note" id="catstate">Search runs on the iTunes catalogue, with MusicBrainz as a backup.</p>
+      <div class="row"><button class="btn s" id="cattest">Run a check</button></div>
+    </div>
+
+    <div class="set">
       <h3>Listening history</h3>
       <p class="note" id="playnote"></p>
       <div class="row"><button class="btn s" id="syncnow">Sync now</button></div>
@@ -763,19 +769,20 @@ async function itunes(p){
   if(catCache.has(url)) return catCache.get(url);
 
   let out;
-  if(catMode !== 'jsonp'){
-    try{
-      const r = await fetch(url);
-      if(r.status === 403 || r.status === 429) throw catErr('rate');
-      if(!r.ok) throw catErr('blocked');
-      out = (await r.json()).results || [];
-      catMode = 'fetch';
-    }catch(e){
-      if(e.kind === 'rate') throw e;
-      catMode = 'jsonp';               // CORS refused — script tags from here on
+  if(catMode !== 'fetch'){
+    try{ out = await jsonp(p); catMode = 'jsonp' }
+    catch(e){
+      if(catMode === 'jsonp') throw e;       // already know fetch doesn't work here
+      catMode = null;
     }
   }
-  if(out === undefined) out = await jsonp(p);
+  if(out === undefined){
+    const r = await fetch(url);             // may throw on CORS; caller handles it
+    if(r.status === 403 || r.status === 429) throw catErr('rate');
+    if(!r.ok) throw catErr('blocked');
+    out = (await r.json()).results || [];
+    catMode = 'fetch';
+  }
 
   catCache.set(url, out);
   if(catCache.size > 80) catCache.delete(catCache.keys().next().value);
@@ -789,8 +796,67 @@ const CATMSG = {
 };
 const catMsg = e => CATMSG[e && e.kind] || CATMSG.blocked;
 
-const searchIT = (term, entity, limit=25) =>
-  itunes({ path:'search', q:{ media:'music', entity, limit, term } });
+/* ── MusicBrainz, the backup ─────────────────────────────────
+   Open, CORS-enabled, no key. Plenty of content blockers list
+   itunes.apple.com because it doubles as an affiliate endpoint,
+   so when Apple won't answer we fall through to here. No artwork
+   comes back from MusicBrainz — those records get a monogram. */
+const MB = {
+  album:  { path:'release-group', extra:'%20AND%20primarytype:album', list:'release-groups' },
+  song:   { path:'recording',     extra:'',                           list:'recordings' },
+  artist: { path:'artist',        extra:'',                           list:'artists' }
+};
+const MBKIND = { album:'album', song:'song', musicArtist:'artist' };
+
+async function mbSearch(term, entity){
+  const m = MB[MBKIND[entity] || entity];
+  if(!m) throw catErr('blocked');
+  const url = `https://musicbrainz.org/ws/2/${m.path}`
+            + `?query=${encodeURIComponent(term)}${m.extra}&fmt=json&limit=25`;
+  let r;
+  try{ r = await fetch(url, { headers:{ Accept:'application/json' } }) }
+  catch{ throw catErr('blocked') }
+  if(r.status === 503) throw catErr('rate');
+  if(!r.ok) throw catErr('blocked');
+  const d = await r.json();
+  const rows = d[m.list] || [];
+  const kind = MBKIND[entity] || entity;
+  const tag = x => (x.tags || []).sort((a,b) => (b.count||0)-(a.count||0))[0]?.name;
+  const cap = t => t ? t.replace(/\b\w/g, c => c.toUpperCase()) : 'Unfiled';
+  return rows.map(x => {
+    const who = (x['artist-credit'] || [])[0]?.name || (kind === 'artist' ? x.name : '');
+    if(kind === 'artist')
+      return { type:'artist', name:x.name, artist:x.name, album:'', art:'',
+               year:(x['life-span']?.begin || '').slice(0,4), genre:cap(tag(x)), artistId:'' };
+    if(kind === 'song')
+      return { type:'song', name:x.title, artist:who, album:(x.releases||[])[0]?.title || '',
+               art:'', year:((x.releases||[])[0]?.date || '').slice(0,4),
+               genre:cap(tag(x)), artistId:'', ms:x.length || 0 };
+    return { type:'album', name:x.title, artist:who, album:x.title, art:'',
+             year:(x['first-release-date'] || '').slice(0,4), genre:cap(tag(x)), artistId:'' };
+  }).filter(r => r.name && r.artist);
+}
+
+/* Which source answered last — shown under the gear so you can see it. */
+let catSource = null;
+
+async function searchIT(term, entity, limit=25){
+  const ck = 'S|' + entity + '|' + term;
+  if(catCache.has(ck)) return catCache.get(ck);
+  let out, first;
+  try{
+    out = await itunes({ path:'search', q:{ media:'music', entity, limit, term } });
+    catSource = 'iTunes';
+  }catch(e){
+    first = e;
+    if(e.kind !== 'rate'){
+      try{ out = await mbSearch(term, entity); catSource = 'MusicBrainz' }
+      catch{ throw first }
+    } else throw e;
+  }
+  catCache.set(ck, out);
+  return out;
+}
 const lookupIT = (id, entity, limit=20) =>
   itunes({ path:'lookup', q:{ id, entity, limit } });
 
@@ -814,6 +880,8 @@ function fromIT(r){
     genre:norm(r.primaryGenreName), artistId:r.artistId
   };
 }
+/* MusicBrainz already hands back our shape; iTunes rows need converting. */
+const shape = r => r.type ? r : fromIT(r);
 const key = r => `${r.type}|${r.artist}|${r.name}`.toLowerCase().replace(/\s+/g,'');
 const logged = new Set();
 const rebuildLogged = () => { logged.clear(); entries.forEach(e => logged.add(key(e))) };
@@ -1302,7 +1370,7 @@ async function searchCat(k, c, term){
     return;
   }
   if(editing !== k || $('#candq')?.value.trim() !== term) return;   // moved on already
-  catHits = raw.map(fromIT)
+  catHits = raw.map(shape)
     .filter(r => r.name && r.artist)
     .filter(r => !c.genre || r.genre === c.genre)                   // a genre crate stays that genre
     .filter(r => !logged.has(key(r)))
@@ -1482,7 +1550,7 @@ async function findRec(term){
     return;
   }
   if($('#recq')?.value.trim() !== term) return;
-  recHits = raw.map(fromIT).filter(r => r.name && r.artist).slice(0,15);
+  recHits = raw.map(shape).filter(r => r.name && r.artist).slice(0,15);
   el.innerHTML = recHits.length
     ? recHits.map((r,i) => `<div class="res t-album">${tile(r)}
         <div class="m"><b>${esc(r.name)}</b><i>${esc(r.artist)}</i>
@@ -1736,7 +1804,7 @@ async function runSearch(term){
   try{
     const raw = await searchIT(term, ENTITY[mine]);
     if(mine !== kind) return;
-    hits = raw.map(fromIT).filter(r => r.name && r.artist);
+    hits = raw.map(shape).filter(r => r.name && r.artist);
     $('#results').innerHTML = hits.length
       ? hits.map(resultRow).join('')
       : `<div class="empty"><b>Nothing found</b>
@@ -1798,7 +1866,7 @@ async function discover(){
         raw = sets.flat().filter(r => r.wrapperType === 'track');
       }
     }
-    dhits = raw.map(fromIT)
+    dhits = raw.map(shape)
       .filter(r => r.name && r.artist && !logged.has(key(r)))
       .filter((r,i,a) => a.findIndex(x => key(x) === key(r)) === i)
       .slice(0,20);
@@ -2006,6 +2074,46 @@ $('#cidsave').onclick = () => {
   DB.del('tok'); drawSettings();
   toast(v ? 'Saved — now tap Connect' : 'Client ID cleared');
 };
+$('#cattest').onclick = async () => {
+  const out = $('#catstate');
+  out.innerHTML = '<span class="spin"></span> Checking…';
+  const lines = [];
+
+  // Apple over a script tag
+  try{
+    await jsonp({ path:'search', q:{ media:'music', entity:'album', limit:1, term:'miles davis' } });
+    lines.push('<span class="dot live"></span>iTunes via script tag — working');
+  }catch(e){
+    lines.push(`<span class="dot"></span>iTunes via script tag — ${
+      e.kind === 'timeout' ? 'no answer (usually the 20-a-minute limit)' : 'blocked'}`);
+  }
+
+  // Apple over a normal request, which reports a real status
+  try{
+    const r = await fetch('https://itunes.apple.com/search?media=music&entity=album&limit=1&term=miles%20davis');
+    lines.push(r.ok ? '<span class="dot live"></span>iTunes direct — working'
+                    : `<span class="dot"></span>iTunes direct — HTTP ${r.status}${
+                        r.status === 403 ? ' (rate limited)' : ''}`);
+  }catch{
+    lines.push('<span class="dot"></span>iTunes direct — refused by the browser or blocked');
+  }
+
+  // The backup
+  try{
+    const n = (await mbSearch('miles davis', 'album')).length;
+    lines.push(`<span class="dot live"></span>MusicBrainz backup — working (${n} results)`);
+  }catch{
+    lines.push('<span class="dot"></span>MusicBrainz backup — unreachable');
+  }
+
+  const both = lines.filter(l => l.includes('dot live')).length;
+  lines.push(both === 0
+    ? '<br>Nothing is getting through. That points at a content blocker, a VPN, or Lockdown Mode — try Safari with those off.'
+    : both < 3 ? '<br>Enough is working for search to function.'
+               : '<br>All three sources are reachable.');
+  out.innerHTML = lines.join('<br>');
+};
+
 $('#syncnow').onclick = async () => {
   $('#syncnow').textContent = 'Syncing…';
   await syncPlays(true); await syncTops();
