@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Crateside</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#171310">
+<meta name="theme-color" content="#141110">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crateside">
@@ -14,109 +14,112 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;600&family=Karla:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-/* ============================================================
-   CRATESIDE — tokens
-   base    #171310  deep warm brown-black (a dim listening room)
-   raised  #221C17  surface
-   line    #332A22  hairline
-   paper   #E8DCC8  warm paper (primary text)
-   dim     #8A7A6A  secondary text
-   brass   #B8895A  primary accent — notches, active states
-   teal    #7A9E9F  live data from Spotify (cool against the brass)
-   ============================================================ */
+/* ══════════════════════════════════════════════════════════════
+   CRATESIDE
+   The whole app is a storage room. Everything you keep lives in a
+   crate on a shelf: your top fives, your most-played, your minutes.
+   ══════════════════════════════════════════════════════════════ */
 :root{
-  --base:#171310; --raised:#221C17; --line:#332A22;
-  --paper:#E8DCC8; --dim:#8A7A6A; --brass:#B8895A; --teal:#7A9E9F;
-  --red:#B85A4F;
+  --base:#141110; --raised:#1F1A16; --line:#332A22; --line2:#4A3E32;
+  --paper:#E8DCC8; --dim:#8A7A6A;
+  --brass:#B8895A; --teal:#7A9E9F; --ox:#9C4A3F;
+  --wood:#4A3626; --wood-lt:#63482F; --wood-dk:#2A1E15;
   --display:'Oswald',system-ui,sans-serif;
   --body:'Karla',system-ui,sans-serif;
   --mono:'Space Mono',ui-monospace,monospace;
-  --safe-b:env(safe-area-inset-bottom,0px);
-  --safe-t:env(safe-area-inset-top,0px);
+  --sb:env(safe-area-inset-bottom,0px);
+  --st:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
   background:var(--base); color:var(--paper);
   font-family:var(--body); font-size:15px; line-height:1.45;
-  -webkit-font-smoothing:antialiased;
-  overscroll-behavior-y:none;
+  -webkit-font-smoothing:antialiased; overscroll-behavior-y:none;
+}
+/* a dry, dusty grain over everything — the room this app lives in */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.035;
+  background-image:
+    repeating-linear-gradient(0deg,transparent 0 2px,rgba(255,255,255,.6) 2px 3px),
+    repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.6) 3px 4px);
 }
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
-input,textarea{font:inherit;color:inherit;background:none;border:none;outline:none}
+input,textarea,select{font:inherit;color:inherit;background:none;border:none;outline:none}
 :focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:2px}
 
 /* ---------- chrome ---------- */
 #top{
   position:sticky;top:0;z-index:40;
-  padding:calc(var(--safe-t) + 14px) 18px 12px;
-  background:linear-gradient(var(--base) 72%,transparent);
+  padding:calc(var(--st) + 14px) 18px 12px;
+  background:linear-gradient(var(--base) 74%,transparent);
   display:flex;align-items:baseline;gap:10px;
 }
-.wordmark{
-  font-family:var(--display);font-weight:600;font-size:19px;
-  letter-spacing:.16em;text-transform:uppercase;
-}
+.wordmark{font-family:var(--display);font-weight:600;font-size:19px;
+  letter-spacing:.16em;text-transform:uppercase}
 .wordmark span{color:var(--brass)}
 #count{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em;flex:1}
 #gear{font-size:17px;color:var(--dim);padding:4px 2px;align-self:center}
 
-main{padding:0 18px 120px;max-width:640px;margin:0 auto}
+main{padding:0 18px 116px;max-width:640px;margin:0 auto}
 .pane{display:none}
 .pane.on{display:block;animation:rise .22s ease-out}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 .eyebrow{
-  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--dim);
-  margin:22px 0 10px;display:flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);margin:22px 0 10px;display:flex;align-items:center;gap:9px;
 }
 .eyebrow::after{content:'';flex:1;height:1px;background:var(--line)}
 
-/* ---------- the rail: recently played from Spotify ---------- */
+/* ---------- recently played rail ---------- */
 #rail{display:flex;gap:9px;overflow-x:auto;padding:2px 18px 4px;margin:0 -18px;scrollbar-width:none}
 #rail::-webkit-scrollbar{display:none}
-.rchip{
-  flex:0 0 auto;width:98px;text-align:left;
-  animation:rise .3s ease-out backwards;
-}
-.rchip img{width:98px;height:98px;border-radius:3px;display:block;background:var(--raised)}
-.rchip b{
-  display:block;font-family:var(--display);font-weight:500;font-size:12px;
-  line-height:1.25;margin-top:6px;
-  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-}
+.rchip{flex:0 0 auto;width:96px;text-align:left;animation:rise .3s ease-out backwards}
+.rchip img{width:96px;height:96px;border-radius:3px;display:block;background:var(--raised)}
+.rchip b{display:-webkit-box;font-family:var(--display);font-weight:500;font-size:12px;
+  line-height:1.25;margin-top:6px;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .rchip i{display:block;font-style:normal;font-size:11px;color:var(--dim);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rchip:active{opacity:.6}
 
-/* ---------- SIGNATURE: the spine ----------
-   Each logged record renders as a band you flip past,
-   the way a crate reads from above. Tap to pull it out. */
+/* ---------- the spine ---------- */
 .spine{
-  display:flex;align-items:stretch;gap:0;
-  background:var(--raised);
-  border-left:3px solid var(--brass);
-  border-radius:2px;
-  margin-bottom:5px;width:100%;text-align:left;
-  overflow:hidden;position:relative;
+  display:flex;align-items:stretch;background:var(--raised);
+  border-left:3px solid var(--brass);border-radius:2px;
+  margin-bottom:5px;width:100%;text-align:left;overflow:hidden;position:relative;
   transition:transform .16s ease,background .16s ease;
 }
 .spine:active{transform:translateX(5px);background:#2A231C}
+.spine.t-song{border-left-color:var(--teal)}
+.spine.t-artist{border-left-color:var(--ox)}
 .spine .lab{width:52px;height:52px;flex:0 0 52px;background:var(--base);object-fit:cover}
 .spine .txt{flex:1;min-width:0;padding:8px 10px;display:flex;flex-direction:column;justify-content:center}
-.spine .ttl{
-  font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.02em;
-  line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
+.spine .ttl{font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.02em;
+  line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .spine .art{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.spine .side{
-  flex:0 0 auto;padding:0 11px 0 6px;display:flex;flex-direction:column;
-  align-items:flex-end;justify-content:center;gap:4px;
-}
+.spine .side{flex:0 0 auto;padding:0 11px 0 6px;display:flex;flex-direction:column;
+  align-items:flex-end;justify-content:center;gap:4px}
 .spine .when{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.04em}
+.kind{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);border:1px solid var(--line2);border-radius:2px;padding:1px 4px}
 
-/* notches — the rating, read as marks cut into the spine edge */
+/* Artists come back from the catalogue with no artwork, so they get
+   a stamped monogram instead of an empty square. */
+.mono{
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  background:linear-gradient(158deg,#7A5B3C,#5C4430 55%,#3A2A1D);
+  color:rgba(232,220,200,.92);font-family:var(--display);font-weight:500;
+  letter-spacing:.03em;border-radius:2px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
+}
+.mono.round{border-radius:50%}
+.spine .mono{width:52px;height:52px;flex-basis:52px;font-size:21px}
+.res .mono{width:54px;height:54px;flex-basis:54px;font-size:22px}
+.shead .mono{width:88px;height:88px;flex-basis:88px;font-size:34px}
+.rchip .mono{width:96px;height:96px;font-size:38px}
+
+/* ---------- notches ---------- */
 .notches{display:flex;gap:1.5px;align-items:flex-end;height:11px}
 .notch{width:2.5px;height:5px;background:#4A3E32;border-radius:.5px}
 .notch.f{background:var(--brass);height:11px}
@@ -124,60 +127,156 @@ main{padding:0 18px 120px;max-width:640px;margin:0 auto}
 .notches.lg .notch{width:6px;height:12px;border-radius:1px}
 .notches.lg .notch.f{height:26px}
 
-.daymark{
-  font-family:var(--mono);font-size:10px;color:var(--dim);
-  letter-spacing:.1em;text-transform:uppercase;margin:16px 0 7px;
+.daymark{font-family:var(--mono);font-size:10px;color:var(--dim);
+  letter-spacing:.1em;text-transform:uppercase;margin:16px 0 7px}
+
+/* ══════════════════════════════════════════════════════════════
+   SIGNATURE — the shelf
+   ══════════════════════════════════════════════════════════════ */
+.shelfrow{margin-bottom:30px}
+.shelfrow .crates{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 2px;align-items:end}
+.board{
+  height:13px;margin:0 -18px;
+  background:
+    linear-gradient(180deg,var(--wood-lt) 0 3px,var(--wood) 3px 8px,var(--wood-dk) 8px);
+  box-shadow:0 6px 16px -6px rgba(0,0,0,.85);
+  position:relative;
+}
+.board::after{ /* the plank's front edge, catching a little light */
+  content:'';position:absolute;left:0;right:0;top:0;height:1px;
+  background:rgba(232,220,200,.14);
 }
 
-/* ---------- search ---------- */
-#sbar{
-  display:flex;align-items:center;gap:9px;background:var(--raised);
-  border:1px solid var(--line);border-radius:3px;padding:11px 13px;margin-top:4px;
+.crate{
+  position:relative;display:flex;flex-direction:column;align-items:stretch;
+  width:100%;text-align:left;
+  transition:transform .17s cubic-bezier(.2,.8,.3,1);
 }
+.crate:active{transform:translateY(-5px)}
+/* the tops of the records, standing up out of the crate — each crate's
+   profile is derived from its name, so no two look stamped from one mould */
+.peek{display:flex;gap:1.5px;align-items:flex-end;height:27px;margin:0 8%;flex:0 0 auto}
+.peek i{flex:1;border-radius:1px 1px 0 0;background:#5E4E3E;
+  box-shadow:inset 0 1px 0 rgba(232,220,200,.16)}
+.peek i.alt{background:#493B2E}
+.peek i.hi{background:var(--brass);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.box{
+  position:relative;width:100%;aspect-ratio:3/2;flex:0 0 auto;
+  border-radius:2px 2px 3px 3px;
+  background:linear-gradient(172deg,var(--wood-lt),var(--wood) 45%,var(--wood-dk));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),
+             inset 0 -6px 10px -6px rgba(0,0,0,.7),
+             0 5px 9px -5px rgba(0,0,0,.7);
+  overflow:hidden;
+}
+.box::before{ /* slats */
+  content:'';position:absolute;inset:0;opacity:.5;
+  background:repeating-linear-gradient(180deg,
+    transparent 0 13px, rgba(0,0,0,.35) 13px 15px, rgba(255,255,255,.05) 15px 16px);
+}
+.plate{
+  position:absolute;left:9%;right:9%;top:50%;transform:translateY(-50%);
+  background:rgba(20,17,16,.82);border:1px solid rgba(232,220,200,.22);
+  border-radius:1px;padding:7px 4px;text-align:center;
+  font-family:var(--display);font-weight:500;font-size:11.5px;line-height:1.15;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--paper);
+}
+.tally{
+  position:absolute;right:7px;bottom:5px;font-family:var(--mono);font-size:9px;
+  color:rgba(232,220,200,.55);letter-spacing:.05em;
+}
+.crate.bare .peek i{background:var(--line)}
+.crate.bare .plate{color:var(--dim);border-color:rgba(232,220,200,.1)}
+
+/* ---------- rank marks inside an opened crate ---------- */
+.rank{font-family:var(--display);font-weight:600;font-size:15px;color:var(--ox);
+  width:19px;flex:0 0 19px;text-align:center;align-self:center;letter-spacing:.02em}
+.pinned .rank{color:var(--brass)}
+.spine.slot{border-left-color:var(--line2)}
+.editrow{display:flex;gap:5px;flex:0 0 auto;align-items:center;padding-right:8px}
+.ebtn{font-family:var(--mono);font-size:12px;color:var(--dim);
+  border:1px solid var(--line2);border-radius:2px;width:26px;height:26px;line-height:1}
+.ebtn.on{color:var(--brass);border-color:var(--brass)}
+
+/* ---------- readouts ---------- */
+.bigstat{
+  background:var(--raised);border:1px solid var(--line);border-radius:3px;
+  padding:16px;margin-bottom:10px;
+}
+.bigstat .n{font-family:var(--display);font-weight:300;font-size:38px;line-height:1;
+  letter-spacing:-.01em;color:var(--brass)}
+.bigstat .n small{font-size:15px;color:var(--dim);letter-spacing:.08em;margin-left:5px}
+.bigstat .k{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--dim);margin-top:7px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.split .bigstat{margin:0}
+.split .n{font-size:26px}
+
+.bar{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.bar .nm{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .vl{font-family:var(--mono);font-size:11px;color:var(--brass);flex:0 0 auto}
+.bar .track{height:3px;background:var(--line);border-radius:2px;margin-top:5px;overflow:hidden}
+.bar .fill{height:100%;background:var(--brass);border-radius:2px}
+.barwrap{padding:9px 0;border-bottom:1px solid var(--line)}
+.barwrap:last-child{border:0}
+.barhead{display:flex;gap:10px;align-items:baseline}
+
+/* ---------- search / segmented ---------- */
+#sbar{display:flex;align-items:center;gap:9px;background:var(--raised);
+  border:1px solid var(--line);border-radius:3px;padding:11px 13px;margin-top:4px}
 #sbar:focus-within{border-color:var(--brass)}
 #q{flex:1;font-size:16px}
 #q::placeholder{color:var(--dim)}
 #sclear{color:var(--dim);font-size:16px;padding:0 2px;display:none}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:3px;
+  overflow:hidden;margin-top:10px}
+.seg button{flex:1;padding:9px 4px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--dim);
+  border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--brass);color:var(--base)}
 
 .res{display:flex;gap:11px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .res img{width:54px;height:54px;border-radius:2px;flex:0 0 54px;background:var(--raised)}
+.res img.round{border-radius:50%}
 .res .m{flex:1;min-width:0}
-.res .m b{display:block;font-family:var(--display);font-weight:500;font-size:14px;line-height:1.25;
-  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.res .m b{display:-webkit-box;font-family:var(--display);font-weight:500;font-size:14px;
+  line-height:1.25;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .res .m i{font-style:normal;font-size:12px;color:var(--dim);display:block;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .res .m em{font-family:var(--mono);font-style:normal;font-size:10px;color:var(--dim)}
 .acts{display:flex;gap:6px;flex:0 0 auto}
-.mini{
-  font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
-  border:1px solid var(--line);border-radius:2px;padding:7px 9px;color:var(--dim);
-}
+.mini{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  border:1px solid var(--line2);border-radius:2px;padding:7px 9px;color:var(--dim)}
 .mini.go{border-color:var(--brass);color:var(--brass)}
 .mini:active{background:var(--line)}
 .mini.done{border-color:var(--teal);color:var(--teal)}
 
 /* ---------- sheet ---------- */
-#scrim{position:fixed;inset:0;background:rgba(8,6,5,.72);z-index:60;display:none;
+#scrim{position:fixed;inset:0;background:rgba(8,6,5,.74);z-index:60;display:none;
   backdrop-filter:blur(2px)}
 #scrim.on{display:block;animation:fade .18s}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 #sheet{
-  position:fixed;left:0;right:0;bottom:0;z-index:61;
-  background:var(--raised);border-top:2px solid var(--brass);
-  border-radius:10px 10px 0 0;
-  padding:20px 20px calc(22px + var(--safe-b));
-  max-height:88vh;overflow-y:auto;display:none;
-  max-width:640px;margin:0 auto;
+  position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--raised);
+  border-top:2px solid var(--brass);border-radius:10px 10px 0 0;
+  padding:20px 20px calc(22px + var(--sb));
+  max-height:88vh;overflow-y:auto;display:none;max-width:640px;margin:0 auto;
 }
 #sheet.on{display:block;animation:up .24s cubic-bezier(.2,.8,.3,1)}
 @keyframes up{from{transform:translateY(100%)}to{transform:none}}
-.grab{width:34px;height:3px;background:var(--line);border-radius:2px;margin:-8px auto 16px}
+.grab{width:34px;height:3px;background:var(--line2);border-radius:2px;margin:-8px auto 16px}
 .shead{display:flex;gap:13px;margin-bottom:18px}
 .shead img{width:88px;height:88px;border-radius:3px;flex:0 0 88px;background:var(--base)}
+.shead img.round{border-radius:50%}
 .shead h2{font-family:var(--display);font-weight:500;font-size:19px;line-height:1.2;margin:0 0 3px}
 .shead p{margin:0;color:var(--dim);font-size:13px}
 .shead em{font-family:var(--mono);font-style:normal;font-size:10px;color:var(--dim);
   display:block;margin-top:5px;letter-spacing:.06em}
+.sheettitle{font-family:var(--display);font-weight:500;font-size:20px;letter-spacing:.09em;
+  text-transform:uppercase;margin:0 0 4px}
+.sheetsub{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--dim);margin:0 0 18px}
 .field{margin-bottom:16px}
 .flabel{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
   color:var(--dim);margin-bottom:8px;display:flex;justify-content:space-between}
@@ -189,39 +288,31 @@ main{padding:0 18px 120px;max-width:640px;margin:0 auto}
 #when{background:var(--base);border:1px solid var(--line);border-radius:3px;
   padding:10px;font-family:var(--mono);font-size:13px;width:100%}
 .row{display:flex;gap:9px;margin-top:20px}
-.btn{
-  flex:1;font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.1em;
-  text-transform:uppercase;padding:14px;border-radius:3px;text-align:center;
-}
-.btn.p{background:var(--brass);color:#171310}
+.btn{flex:1;font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.1em;
+  text-transform:uppercase;padding:14px;border-radius:3px;text-align:center}
+.btn.p{background:var(--brass);color:#141110}
 .btn.p:active{background:#A5784C}
-.btn.s{border:1px solid var(--line);color:var(--dim)}
-.btn.d{border:1px solid var(--red);color:var(--red);flex:0 0 auto;padding:14px 18px}
+.btn.s{border:1px solid var(--line2);color:var(--dim)}
+.btn.d{border:1px solid var(--ox);color:var(--ox);flex:0 0 auto;padding:14px 18px}
 
 /* ---------- nav ---------- */
-#nav{
-  position:fixed;left:0;right:0;bottom:0;z-index:50;
-  display:flex;background:rgba(23,19,16,.94);backdrop-filter:blur(14px);
-  border-top:1px solid var(--line);padding-bottom:var(--safe-b);
-}
-#nav button{
-  flex:1;padding:12px 4px 11px;font-family:var(--mono);font-size:9.5px;
-  letter-spacing:.15em;text-transform:uppercase;color:var(--dim);
-  border-top:2px solid transparent;margin-top:-1px;
-}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;
+  background:rgba(20,17,16,.95);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);padding-bottom:var(--sb)}
+#nav button{flex:1;padding:12px 4px 11px;font-family:var(--mono);font-size:9px;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--dim);
+  border-top:2px solid transparent;margin-top:-1px}
 #nav button.on{color:var(--brass);border-top-color:var(--brass)}
 
 /* ---------- misc ---------- */
-.empty{padding:40px 6px;color:var(--dim);font-size:14px;line-height:1.6}
+.empty{padding:36px 6px;color:var(--dim);font-size:14px;line-height:1.6}
 .empty b{display:block;font-family:var(--display);font-weight:500;font-size:16px;
   color:var(--paper);letter-spacing:.03em;margin-bottom:6px}
 .note{font-size:12.5px;color:var(--dim);line-height:1.55}
 .note code{font-family:var(--mono);font-size:11px;color:var(--brass);
   background:var(--base);padding:2px 5px;border-radius:2px;word-break:break-all}
-#cid{
-  width:100%;background:var(--base);border:1px solid var(--line);border-radius:3px;
-  padding:12px;font-family:var(--mono);font-size:14px;margin-top:12px;letter-spacing:.02em;
-}
+#cid{width:100%;background:var(--base);border:1px solid var(--line);border-radius:3px;
+  padding:12px;font-family:var(--mono);font-size:14px;margin-top:12px;letter-spacing:.02em}
 #cid:focus{border-color:var(--brass)}
 #cid::placeholder{color:var(--dim);letter-spacing:.08em}
 #cidhelp{margin:8px 0 0}
@@ -229,22 +320,25 @@ main{padding:0 18px 120px;max-width:640px;margin:0 auto}
 .set:last-child{border:0}
 .set h3{font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.06em;
   text-transform:uppercase;margin:0 0 7px}
-#toast{
-  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + var(--safe-b));
+.pick{width:100%;background:var(--base);border:1px solid var(--line);border-radius:3px;
+  padding:11px;font-size:15px;margin-bottom:10px;
+  -webkit-appearance:none;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),
+                   linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + var(--sb));
   background:var(--paper);color:var(--base);font-family:var(--mono);font-size:11px;
   letter-spacing:.06em;padding:9px 15px;border-radius:2px;z-index:70;
-  opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;
-}
+  opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;max-width:88vw}
 #toast.on{opacity:1}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--line);display:inline-block;
+.dot{width:6px;height:6px;border-radius:50%;background:var(--line2);display:inline-block;
   vertical-align:middle;margin-right:5px}
 .dot.live{background:var(--teal)}
 .spin{display:inline-block;width:11px;height:11px;border:1.5px solid var(--line);
   border-top-color:var(--brass);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){
-  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
-}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -256,33 +350,50 @@ main{padding:0 18px 120px;max-width:640px;margin:0 auto}
 </div>
 
 <main>
-  <!-- LOG -->
+  <!-- ══ LOG ══ -->
   <section class="pane on" id="p-log">
     <div id="railwrap" style="display:none">
       <div class="eyebrow"><span class="dot live"></span>Played recently</div>
       <div id="rail"></div>
     </div>
-    <div class="eyebrow">The crate</div>
+    <div class="eyebrow">The log</div>
     <div id="diary"></div>
   </section>
 
-  <!-- FIND -->
+  <!-- ══ FIND ══ -->
   <section class="pane" id="p-find">
     <div id="sbar">
-      <input id="q" placeholder="Album or artist" autocomplete="off"
+      <input id="q" placeholder="Search" autocomplete="off"
              autocorrect="off" spellcheck="false" enterkeyhint="search">
       <button id="sclear" aria-label="Clear">✕</button>
+    </div>
+    <div class="seg" id="seg">
+      <button data-k="album" class="on">Albums</button>
+      <button data-k="song">Songs</button>
+      <button data-k="artist">Artists</button>
     </div>
     <div id="results"></div>
   </section>
 
-  <!-- SHELF (listen later) -->
+  <!-- ══ SHELF ══ -->
   <section class="pane" id="p-shelf">
-    <div class="eyebrow">On the shelf</div>
-    <div id="shelf"></div>
+    <div id="minutes"></div>
+    <div id="shelves"></div>
   </section>
 
-  <!-- SETTINGS -->
+  <!-- ══ DISCOVER ══ -->
+  <section class="pane" id="p-disc">
+    <div class="eyebrow">Might suit you</div>
+    <select class="pick" id="dmode">
+      <option value="overall">Based on everything you've rated</option>
+      <option value="artist">More from one artist</option>
+      <option value="genre">More from one genre</option>
+    </select>
+    <select class="pick" id="dpick" style="display:none"></select>
+    <div id="dout"></div>
+  </section>
+
+  <!-- ══ SETTINGS ══ -->
   <section class="pane" id="p-set">
     <div class="eyebrow">Settings</div>
 
@@ -305,6 +416,12 @@ main{padding:0 18px 120px;max-width:640px;margin:0 auto}
     </div>
 
     <div class="set">
+      <h3>Listening history</h3>
+      <p class="note" id="playnote"></p>
+      <div class="row"><button class="btn s" id="syncnow">Sync now</button></div>
+    </div>
+
+    <div class="set">
       <h3>Your records</h3>
       <p class="note">Everything lives on this device only. Export before you clear Safari data or switch phones.</p>
       <div class="row">
@@ -319,37 +436,48 @@ main{padding:0 18px 120px;max-width:640px;margin:0 auto}
   <button data-p="log" class="on">Log</button>
   <button data-p="find">Find</button>
   <button data-p="shelf">Shelf</button>
+  <button data-p="disc">Discover</button>
 </nav>
 
 <div id="scrim"></div>
 <div id="sheet"></div>
 <div id="toast"></div>
 <input type="file" id="fileimp" accept="application/json" style="display:none">
-
 <script>
 /* ══════════════════════════════════════════════════════════════
    Nothing to edit here. Enter your Spotify Client ID once under
    the gear icon — it's stored on this device. It isn't a secret;
    a browser app has no way to hide one, which is why PKCE exists.
    ══════════════════════════════════════════════════════════════ */
-const SCOPES = 'user-read-recently-played user-read-currently-playing';
+const SCOPES   = 'user-read-recently-played user-top-read';
 const REDIRECT = location.origin + location.pathname;
-const $ = s => document.querySelector(s);
+const $  = s => document.querySelector(s);
+const DAYMS = 864e5;
 
 /* ── storage ────────────────────────────────────────────────── */
 const DB = {
   get(k, d){ try { return JSON.parse(localStorage.getItem('ck.'+k)) ?? d } catch { return d } },
-  set(k, v){ localStorage.setItem('ck.'+k, JSON.stringify(v)) },
+  set(k, v){ try { localStorage.setItem('ck.'+k, JSON.stringify(v)) }
+             catch { toast('Storage full — export and trim your history') } },
   del(k){ localStorage.removeItem('ck.'+k) }
 };
 let CLIENT_ID = DB.get('clientId', '');
-let entries = DB.get('entries', []);
-let shelf   = DB.get('shelf', []);
-const save  = () => { DB.set('entries', entries); DB.set('shelf', shelf) };
+let entries   = DB.get('entries', []);   // everything you've rated
+let shelf     = DB.get('shelf', []);     // listen later
+let plays     = DB.get('plays', []);     // your listening history, built up over time
+let plnames   = DB.get('plnames', {});   // playlist id → name
+let pins      = DB.get('pins', {});      // crate key → ordered entry ids
+let tops      = DB.get('tops', {});      // cached /me/top results
+
+const saveEntries = () => DB.set('entries', entries);
+const saveShelf   = () => DB.set('shelf', shelf);
+const savePlays   = () => DB.set('plays', plays);
+const savePins    = () => DB.set('pins', pins);
 
 function toast(m){
-  const t = $('#toast'); t.textContent = m; t.classList.add('on');
-  clearTimeout(t._x); t._x = setTimeout(()=>t.classList.remove('on'), 1700);
+  const t = $('#toast'); if(!t) return;
+  t.textContent = m; t.classList.add('on');
+  clearTimeout(t._x); t._x = setTimeout(() => t.classList.remove('on'), 1900);
 }
 const esc = s => String(s??'').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -361,125 +489,196 @@ function randStr(n){
 }
 const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf)))
   .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-
-async function challenge(v){
-  return b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)));
-}
+const challenge = async v =>
+  b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)));
 
 async function spotifyLogin(){
   if(!CLIENT_ID){ toast('Enter your Client ID first'); return }
-  const v = randStr(64);
-  const state = randStr(16);
+  const v = randStr(64), state = randStr(16);
   sessionStorage.setItem('ck.v', v);
   sessionStorage.setItem('ck.state', state);
-  const p = new URLSearchParams({
+  location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
     client_id: CLIENT_ID, response_type:'code', redirect_uri:REDIRECT,
     code_challenge_method:'S256', code_challenge: await challenge(v),
     scope: SCOPES, state
   });
-  location.href = 'https://accounts.spotify.com/authorize?' + p;
 }
 
 async function tokenReq(body){
   const r = await fetch('https://accounts.spotify.com/api/token',{
-    method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body: new URLSearchParams(body)
   });
   if(!r.ok) throw new Error('token ' + r.status);
   return r.json();
 }
-
 function storeTok(t){
   const cur = DB.get('tok', {});
-  DB.set('tok', {
-    access: t.access_token,
-    refresh: t.refresh_token || cur.refresh,
-    exp: Date.now() + (t.expires_in - 60) * 1000   // renew a minute early
-  });
+  DB.set('tok', { access:t.access_token, refresh:t.refresh_token || cur.refresh,
+                  exp: Date.now() + (t.expires_in - 60) * 1000 });
 }
 
-/* Handle the ?code= bounce-back from Spotify */
 async function handleCallback(){
   const u = new URLSearchParams(location.search);
-  const code = u.get('code');
-  if(u.get('error')){
-    history.replaceState({}, '', REDIRECT);
-    toast('Spotify sign-in cancelled'); return;
-  }
-  if(!code) return;
+  if(u.get('error')){ history.replaceState({},'',REDIRECT); toast('Spotify sign-in cancelled'); return }
+  const code = u.get('code'); if(!code) return;
   const v = sessionStorage.getItem('ck.v');
   if(u.get('state') !== sessionStorage.getItem('ck.state') || !v){
-    history.replaceState({}, '', REDIRECT);
-    toast("Sign-in didn't verify. Try again."); return;
+    history.replaceState({},'',REDIRECT); toast("Sign-in didn't verify. Try again."); return;
   }
-  history.replaceState({}, '', REDIRECT);
+  history.replaceState({},'',REDIRECT);
   try{
-    storeTok(await tokenReq({
-      grant_type:'authorization_code', code, redirect_uri:REDIRECT,
-      client_id:CLIENT_ID, code_verifier:v
-    }));
+    storeTok(await tokenReq({ grant_type:'authorization_code', code, redirect_uri:REDIRECT,
+                              client_id:CLIENT_ID, code_verifier:v }));
     sessionStorage.removeItem('ck.v'); sessionStorage.removeItem('ck.state');
     toast('Spotify connected');
-  }catch(e){
-    toast('Spotify sign-in failed');
-  }
+  }catch{ toast('Spotify sign-in failed') }
 }
 
-/* Always go through here — refreshes silently when the hour is up */
 async function token(){
   const t = DB.get('tok', null);
   if(!t) return null;
   if(Date.now() < t.exp) return t.access;
   if(!t.refresh){ DB.del('tok'); return null }
   try{
-    storeTok(await tokenReq({
-      grant_type:'refresh_token', refresh_token:t.refresh, client_id:CLIENT_ID
-    }));
+    storeTok(await tokenReq({ grant_type:'refresh_token', refresh_token:t.refresh, client_id:CLIENT_ID }));
     return DB.get('tok').access;
-  }catch{
-    DB.del('tok'); return null;
-  }
+  }catch{ DB.del('tok'); return null }
 }
 
+/* Returns null on any failure — every caller treats Spotify as optional. */
 async function api(path){
-  const a = await token();
-  if(!a) return null;
-  const r = await fetch('https://api.spotify.com/v1' + path, {
-    headers:{ Authorization:'Bearer ' + a }
-  });
+  const a = await token(); if(!a) return null;
+  let r;
+  try{ r = await fetch('https://api.spotify.com/v1' + path, { headers:{ Authorization:'Bearer '+a } }) }
+  catch{ return null }
   if(r.status === 401){ DB.del('tok'); return null }
-  if(r.status === 403){ throw new Error('403') }
   if(!r.ok) return null;
   return r.json();
 }
 
-/* ── iTunes catalogue (JSONP — the endpoint sends no CORS header) ── */
-function itunes(term){
+/* ══ the play log ══════════════════════════════════════════════
+   Spotify only hands back the last 50 plays, so this stitches
+   them into a history of your own every time the app opens.
+   Nothing before you connected can ever be recovered.
+   ══════════════════════════════════════════════════════════════ */
+async function syncPlays(loud){
+  if(!DB.get('tok', null)){ if(loud) toast('Connect Spotify first'); return 0 }
+  const d = await api('/me/player/recently-played?limit=50');
+  if(!d || !d.items){ if(loud) toast("Couldn't reach Spotify"); return 0 }
+
+  const have = new Set(plays.map(p => p.ts));
+  let added = 0;
+  for(const it of d.items){
+    if(have.has(it.played_at)) continue;
+    const t = it.track; if(!t) continue;
+    const ctxUri = it.context?.type === 'playlist' ? it.context.uri : null;
+    plays.push({
+      ts: it.played_at,
+      name: t.name,
+      artist: (t.artists||[]).map(a=>a.name).join(', '),
+      album: t.album?.name || '',
+      art: t.album?.images?.[0]?.url || '',
+      ms: t.duration_ms || 0,
+      ctx: ctxUri ? ctxUri.split(':').pop() : null
+    });
+    added++;
+  }
+  if(added){
+    plays.sort((a,b) => b.ts.localeCompare(a.ts));
+    if(plays.length > 6000) plays.length = 6000;   // keep localStorage bounded
+    savePlays();
+    DB.set('lastSync', Date.now());
+    namePlaylists();
+  }
+  if(loud) toast(added ? `Added ${added} play${added>1?'s':''}` : 'Already up to date');
+  return added;
+}
+
+/* Resolve playlist ids to names, a few at a time so we stay well under rate limits. */
+async function namePlaylists(){
+  const unknown = [...new Set(plays.map(p => p.ctx).filter(id => id && !plnames[id]))].slice(0,4);
+  for(const id of unknown){
+    const d = await api('/playlists/' + id);
+    plnames[id] = d?.name || 'Unknown playlist';
+    DB.set('plnames', plnames);
+    await new Promise(r => setTimeout(r, 220));
+  }
+}
+
+/* Spotify's own month ranking — better than my log early on, since it
+   sees your whole history. Cached so the crate still opens offline. */
+async function syncTops(){
+  if(!DB.get('tok', null)) return;
+  const [tr, ar] = await Promise.all([
+    api('/me/top/tracks?time_range=short_term&limit=5'),
+    api('/me/top/artists?time_range=short_term&limit=5')
+  ]);
+  const next = {};
+  if(tr?.items) next.tracks = tr.items.map(t => ({
+    name:t.name, artist:(t.artists||[]).map(a=>a.name).join(', '),
+    art:t.album?.images?.[0]?.url || ''
+  }));
+  if(ar?.items) next.artists = ar.items.map(a => ({ name:a.name, art:a.images?.[0]?.url || '' }));
+  if(next.tracks || next.artists){
+    tops = { ...next, at: Date.now() };
+    DB.set('tops', tops);
+  }
+}
+
+/* ══ the catalogue ═════════════════════════════════════════════
+   iTunes rather than Spotify: no auth, no five-user cap, and it
+   still returns 25 results where Spotify's dev mode gives 10.
+   It sends no CORS header, so this goes over JSONP.
+   ══════════════════════════════════════════════════════════════ */
+function itunes(params){
   return new Promise((res, rej) => {
-    const cb = 'ck' + randStr(8).replace(/[^a-z0-9]/gi,'');
+    const cb = 'ck' + randStr(10).replace(/[^a-z0-9]/gi,'');
     const s  = document.createElement('script');
-    const done = fn => { delete window[cb]; clearTimeout(timer); s.remove(); fn() };
-    const timer = setTimeout(() => done(() => rej(new Error('timeout'))), 9000);
-    window[cb] = d => done(() => res(d.results || []));
-    s.onerror  = () => done(() => rej(new Error('offline')));
-    s.src = 'https://itunes.apple.com/search?media=music&entity=album&limit=25'
-          + '&term=' + encodeURIComponent(term) + '&callback=' + cb;
+    const fin = fn => { delete window[cb]; clearTimeout(timer); s.remove(); fn() };
+    const timer = setTimeout(() => fin(() => rej(new Error('timeout'))), 9000);
+    window[cb] = d => fin(() => res(d.results || []));
+    s.onerror  = () => fin(() => rej(new Error('offline')));
+    s.src = 'https://itunes.apple.com/' + params.path + '?' +
+            new URLSearchParams({ ...params.q, callback: cb });
     document.head.appendChild(s);
   });
 }
-const big = url => (url||'').replace(/\/\d+x\d+bb\./, '/600x600bb.');
+const searchIT = (term, entity, limit=25) =>
+  itunes({ path:'search', q:{ media:'music', entity, limit, term } });
+const lookupIT = (id, entity, limit=20) =>
+  itunes({ path:'lookup', q:{ id, entity, limit } });
 
-/* ── record shape ───────────────────────────────────────────── */
-const key = r => (r.artist + '|' + r.album).toLowerCase().replace(/\s+/g,'');
-const fromItunes = a => ({
-  album:a.collectionName, artist:a.artistName,
-  art:big(a.artworkUrl100), year:(a.releaseDate||'').slice(0,4)
-});
-const fromSpotify = al => ({
-  album:al.name, artist:al.artists.map(x=>x.name).join(', '),
-  art:(al.images?.[0]||{}).url || '', year:(al.release_date||'').slice(0,4)
-});
+const big = u => (u||'').replace(/\/\d+x\d+bb\./, '/600x600bb.');
+const norm = g => (g||'').trim() || 'Unfiled';
+
+/* One shape for all three kinds of thing you can rate. */
+function fromIT(r){
+  if(r.wrapperType === 'artist' || r.artistType) return {
+    type:'artist', name:r.artistName, artist:r.artistName, album:'', art:'',
+    year:'', genre:norm(r.primaryGenreName), artistId:r.artistId
+  };
+  if(r.wrapperType === 'track') return {
+    type:'song', name:r.trackName, artist:r.artistName, album:r.collectionName||'',
+    art:big(r.artworkUrl100), year:(r.releaseDate||'').slice(0,4),
+    genre:norm(r.primaryGenreName), artistId:r.artistId, ms:r.trackTimeMillis||0
+  };
+  return {
+    type:'album', name:r.collectionName, artist:r.artistName, album:r.collectionName,
+    art:big(r.artworkUrl100), year:(r.releaseDate||'').slice(0,4),
+    genre:norm(r.primaryGenreName), artistId:r.artistId
+  };
+}
+const key = r => `${r.type}|${r.artist}|${r.name}`.toLowerCase().replace(/\s+/g,'');
+const logged = new Set();
+const rebuildLogged = () => { logged.clear(); entries.forEach(e => logged.add(key(e))) };
+
+/* Artists have no artwork in the catalogue, so they get a stamped monogram. */
+const initial = n => (String(n).trim()[0] || '?').toUpperCase();
+function tile(r, cls=''){
+  if(r.art) return `<img class="${cls}" src="${esc(r.art)}" alt="" loading="lazy">`;
+  return `<span class="mono ${cls}">${esc(initial(r.name))}</span>`;
+}
 
 /* ── notches ────────────────────────────────────────────────── */
 function marks(rating){
@@ -489,34 +688,42 @@ function marks(rating){
 }
 const notches = (rating, cls='') => `<div class="notches ${cls}">${marks(rating)}</div>`;
 
-/* ── the diary ──────────────────────────────────────────────── */
+/* ── dates ──────────────────────────────────────────────────── */
 const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function label(iso){
-  const [y,m,d] = iso.split('-').map(Number);
-  const dt = new Date(y, m-1, d);
-  const t  = new Date(); t.setHours(0,0,0,0);
-  const gap = Math.round((t - dt)/864e5);
-  if(gap === 0) return 'Today';
-  if(gap === 1) return 'Yesterday';
-  if(gap < 7)   return DAY[dt.getDay()];
-  return `${MON[m-1]} ${d}` + (y !== t.getFullYear() ? ` ${y}` : '');
-}
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
+function label(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  const t = new Date(); t.setHours(0,0,0,0);
+  const gap = Math.round((t - dt)/DAYMS);
+  if(gap === 0) return 'Today';
+  if(gap === 1) return 'Yesterday';
+  if(gap < 7 && gap > 0) return DAY[dt.getDay()];
+  return `${MON[m-1]} ${d}` + (y !== t.getFullYear() ? ` ${y}` : '');
+}
+function hrs(ms){
+  const m = Math.round(ms/60000);
+  if(m < 60) return { n:m, u:'min' };
+  return { n:(m/60).toFixed(m < 600 ? 1 : 0), u:'hr' };
+}
+const mins = ms => Math.round(ms/60000);
 
-function spine(e){
-  return `<button class="spine" data-id="${e.id}">
-    <img class="lab" src="${esc(e.art)}" alt="" loading="lazy">
+/* ── the log ────────────────────────────────────────────────── */
+function spine(e, opts={}){
+  const r = opts.rank ? `<span class="rank">${opts.rank}</span>` : '';
+  return `<button class="spine t-${e.type}${opts.cls?' '+opts.cls:''}" data-id="${e.id}">
+    ${r}${tile(e,'lab')}
     <span class="txt">
-      <span class="ttl">${esc(e.album)}</span>
-      <span class="art">${esc(e.artist)}</span>
+      <span class="ttl">${esc(e.name)}</span>
+      <span class="art">${e.type==='artist' ? esc(e.genre) : esc(e.artist)}</span>
     </span>
     <span class="side">
       ${notches(e.rating)}
-      ${e.note ? '<span class="when">noted</span>' : ''}
+      <span class="kind">${e.type}</span>
     </span>
   </button>`;
 }
@@ -525,7 +732,7 @@ function drawDiary(){
   const el = $('#diary');
   if(!entries.length){
     el.innerHTML = `<div class="empty"><b>Nothing logged yet</b>
-      Find a record and rate it. Once a few are in, this becomes a crate you can flip back through.</div>`;
+      Rate an album, a song, or an artist. Once a few are in, your crates fill themselves.</div>`;
     $('#count').textContent = ''; return;
   }
   const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
@@ -536,45 +743,267 @@ function drawDiary(){
   }
   el.innerHTML = out;
   const yr = String(new Date().getFullYear());
-  const n  = entries.filter(e => e.date.startsWith(yr)).length;
-  $('#count').textContent = `${entries.length} logged · ${n} this year`;
+  $('#count').textContent =
+    `${entries.length} rated · ${entries.filter(e=>e.date.startsWith(yr)).length} this year`;
+}
+
+/* ══ ranking ═══════════════════════════════════════════════════
+   Crates fill themselves from your ratings. Rearranging one pins
+   it — from then on that crate is yours, until you reset it.
+   ══════════════════════════════════════════════════════════════ */
+const ranked = f => entries.filter(f).sort((a,b) => b.rating - a.rating || b.created - a.created);
+
+/* An untouched crate ranks itself by rating. The moment you rearrange
+   one it holds exactly what you put in it, nothing more, until reset. */
+function top5(k, f){
+  const p = pins[k];
+  if(p) return p.map(id => entries.find(e => e.id === id))
+                .filter(Boolean).slice(0,5).map(e => ({ ...e, _pin:true }));
+  return ranked(f).slice(0,5);
+}
+const candidates = (k, f) => {
+  const have = new Set(pins[k] || []);
+  return ranked(f).filter(e => !have.has(e.id)).slice(0,12);
+};
+
+const inWindow = (p, days) => !days || (Date.now() - Date.parse(p.ts)) < days * DAYMS;
+
+function playRank(days, mode){
+  const m = new Map();
+  for(const p of plays){
+    if(!inWindow(p, days)) continue;
+    const k = mode === 'song' ? p.name + '|' + p.artist : p.artist;
+    const c = m.get(k) || { name: mode==='song' ? p.name : p.artist,
+                            artist: p.artist, art: p.art, type: mode, n:0, ms:0 };
+    c.n++; c.ms += p.ms; m.set(k, c);
+  }
+  return [...m.values()].sort((a,b) => b.n - a.n || b.ms - a.ms).slice(0,5);
+}
+
+function minsBy(mode, days){
+  const m = new Map();
+  for(const p of plays){
+    if(!inWindow(p, days)) continue;
+    const k = mode === 'artist' ? p.artist : (p.ctx || '__loose');
+    const nm = mode === 'artist' ? p.artist
+             : k === '__loose' ? 'Outside a playlist' : (plnames[k] || 'Unnamed playlist');
+    const c = m.get(k) || { name: nm, ms:0, n:0 };
+    c.ms += p.ms; c.n++; c.name = nm; m.set(k, c);
+  }
+  return [...m.values()].sort((a,b) => b.ms - a.ms);
+}
+const totalMs = days => plays.reduce((s,p) => s + (inWindow(p,days) ? p.ms : 0), 0);
+
+/* ══ the shelf ═════════════════════════════════════════════════ */
+function crates(){
+  const gs = [...new Set(entries.map(e => e.genre))]
+    .filter(g => g && g !== 'Unfiled')
+    .sort((a,b) => entries.filter(e=>e.genre===b).length - entries.filter(e=>e.genre===a).length);
+
+  const list = [
+    { k:'songs',   t:'Top 5 Songs',   kind:'rated', f:e=>e.type==='song'   },
+    { k:'albums',  t:'Top 5 Albums',  kind:'rated', f:e=>e.type==='album'  },
+    { k:'artists', t:'Top 5 Artists', kind:'rated', f:e=>e.type==='artist' },
+    { k:'later',   t:'Listen Later',  kind:'later' },
+    { k:'week',    t:'Most Played · Week',  kind:'plays', days:7  },
+    { k:'month',   t:'Most Played · Month', kind:'plays', days:30 },
+    { k:'minart',  t:'Minutes by Artist',   kind:'mins',  by:'artist'   },
+    { k:'minpl',   t:'Minutes by Playlist', kind:'mins',  by:'playlist' }
+  ];
+  for(const g of gs) list.push({ k:'g:'+g, t:g, kind:'rated', f:e=>e.genre===g, genre:g });
+  return list;
+}
+
+function crateCount(c){
+  if(c.kind === 'rated') return top5(c.k, c.f).length;
+  if(c.kind === 'later') return shelf.length;
+  if(c.kind === 'plays') return playRank(c.days,'song').length;
+  if(c.kind === 'mins')  return minsBy(c.by).length;
+  return 0;
+}
+
+/* A crate's stack of records is drawn from a hash of its name, so the
+   shelf reads as a room of different crates rather than one repeated. */
+function peek(k, filled){
+  let h = 2166136261;
+  for(let i=0;i<k.length;i++) h = Math.imul(h ^ k.charCodeAt(i), 16777619) >>> 0;
+  const hi = h % 12;
+  let out = '';
+  for(let i=0;i<12;i++){
+    h = (Math.imul(h, 1103515245) + 12345) >>> 0;
+    const pct = 54 + (h >>> 8) % 46;
+    const cls = !filled ? '' : i === hi ? 'hi' : (h & 1) ? 'alt' : '';
+    out += `<i class="${cls}" style="height:${pct}%"></i>`;
+  }
+  return out;
 }
 
 function drawShelf(){
-  const el = $('#shelf');
-  if(!shelf.length){
-    el.innerHTML = `<div class="empty"><b>The shelf is empty</b>
-      Records you want to get to later go here. Add one from Find.</div>`;
-    return;
+  const wrap = $('#minutes');
+  const all  = totalMs(), wk = totalMs(7), mo = totalMs(30);
+  const h    = hrs(all);
+  wrap.innerHTML = plays.length ? `
+    <div class="eyebrow">Time on the needle</div>
+    <div class="bigstat">
+      <div class="n">${h.n}<small>${h.u}</small></div>
+      <div class="k">Since you connected Spotify</div>
+    </div>
+    <div class="split">
+      <div class="bigstat"><div class="n">${mins(wk)}<small>min</small></div><div class="k">Past 7 days</div></div>
+      <div class="bigstat"><div class="n">${mins(mo)}<small>min</small></div><div class="k">Past 30 days</div></div>
+    </div>` : `
+    <div class="eyebrow">Time on the needle</div>
+    <div class="empty"><b>No listening history yet</b>
+      Connect Spotify under the gear and this starts filling. It counts from the day you
+      connect — Spotify won't hand back anything older than your last 50 plays.</div>`;
+
+  const cs = crates();
+  let out = '<div class="eyebrow">The shelf</div>';
+  for(let i = 0; i < cs.length; i += 2){
+    out += '<div class="shelfrow"><div class="crates">';
+    for(const c of cs.slice(i, i+2)){
+      const n = crateCount(c);
+      out += `<button class="crate${n?'':' bare'}" data-crate="${esc(c.k)}">
+        <span class="peek">${peek(c.k, n)}</span>
+        <span class="box">
+          <span class="plate">${esc(c.t)}</span>
+          <span class="tally">${n||'—'}</span>
+        </span>
+      </button>`;
+    }
+    out += '</div><div class="board"></div></div>';
   }
-  el.innerHTML = shelf.map(r => `<div class="res">
-      <img src="${esc(r.art)}" alt="" loading="lazy">
-      <div class="m"><b>${esc(r.album)}</b><i>${esc(r.artist)}</i></div>
-      <div class="acts">
-        <button class="mini go" data-shelf-log="${esc(r.k)}">Log</button>
-        <button class="mini" data-shelf-rm="${esc(r.k)}">✕</button>
-      </div>
-    </div>`).join('');
+  $('#shelves').innerHTML = out;
 }
 
-/* ── the sheet ──────────────────────────────────────────────── */
+/* ══ opening a crate ═══════════════════════════════════════════ */
+let editing = null;
+
+function openCrate(k){
+  const c = crates().find(x => x.k === k);
+  if(!c) return;
+  let body = '', foot = '';
+
+  if(c.kind === 'rated'){
+    const items = top5(c.k, c.f);
+    if(!items.length){
+      body = `<div class="empty"><b>Empty crate</b>
+        Rate something that fits and it lands here on its own.</div>`;
+    } else if(editing === k){
+      const ids = pins[k] || items.map(e => e.id);
+      body = ids.map((id, i) => {
+        const e = entries.find(x => x.id === id); if(!e) return '';
+        return `<div class="spine t-${e.type} pinned">
+          <span class="rank">${i+1}</span>${tile(e,'lab')}
+          <span class="txt"><span class="ttl">${esc(e.name)}</span>
+            <span class="art">${e.type==='artist'?esc(e.genre):esc(e.artist)}</span></span>
+          <span class="editrow">
+            <button class="ebtn" data-mv="up:${i}" aria-label="Move up">↑</button>
+            <button class="ebtn" data-mv="dn:${i}" aria-label="Move down">↓</button>
+            <button class="ebtn" data-mv="rm:${i}" aria-label="Remove">✕</button>
+          </span></div>`;
+      }).join('');
+      const cand = ids.length < 5 ? candidates(k, c.f) : [];
+      if(cand.length){
+        body += `<div class="flabel" style="margin-top:20px"><span>Add</span>
+          <span>${5 - ids.length} slot${5-ids.length>1?'s':''} free</span></div>` +
+          cand.map(e => `<div class="spine t-${e.type} slot">
+            ${tile(e,'lab')}
+            <span class="txt"><span class="ttl">${esc(e.name)}</span>
+              <span class="art">${e.type==='artist'?esc(e.genre):esc(e.artist)}</span></span>
+            <span class="editrow">
+              <button class="ebtn on" data-mv="ad:${esc(e.id)}" aria-label="Add">+</button>
+            </span></div>`).join('');
+      }
+      foot = `<div class="row">
+        <button class="btn p" data-editdone="1">Done</button>
+        <button class="btn s" data-editreset="${esc(k)}">Automatic</button></div>`;
+    } else {
+      body = items.map((e,i) => spine(e, { rank:i+1, cls: e._pin ? 'pinned' : '' })).join('');
+      foot = `<div class="row"><button class="btn s" data-edit="${esc(k)}">Rearrange</button></div>`;
+    }
+
+  } else if(c.kind === 'later'){
+    body = shelf.length
+      ? shelf.map(r => `<div class="res">${tile(r)}
+          <div class="m"><b>${esc(r.name)}</b><i>${esc(r.artist)}</i></div>
+          <div class="acts">
+            <button class="mini go" data-shelf-log="${esc(r.k)}">Rate</button>
+            <button class="mini" data-shelf-rm="${esc(r.k)}">✕</button></div></div>`).join('')
+      : `<div class="empty"><b>Nothing set aside</b>
+          Anything you tap "Later" on in Find waits here.</div>`;
+
+  } else if(c.kind === 'plays'){
+    const so = playRank(c.days,'song'), ar = playRank(c.days,'artist');
+    const useTop = c.k === 'month' && tops.tracks?.length && plays.length < 60;
+    if(!so.length && !useTop){
+      body = `<div class="empty"><b>Nothing counted yet</b>
+        This fills from your listening history. Connect Spotify and give it a few days.</div>`;
+    } else {
+      const songs = useTop ? tops.tracks.map(t => ({ ...t, type:'song', n:null })) : so;
+      const arts  = useTop && tops.artists?.length
+                    ? tops.artists.map(a => ({ ...a, type:'artist', n:null })) : ar;
+      body = `<div class="flabel"><span>Songs</span>${useTop?'<span>via Spotify</span>':''}</div>` +
+        songs.map((s,i) => `<div class="spine t-song">
+          <span class="rank">${i+1}</span>${tile(s,'lab')}
+          <span class="txt"><span class="ttl">${esc(s.name)}</span>
+            <span class="art">${esc(s.artist||'')}</span></span>
+          <span class="side"><span class="when">${s.n ? s.n+'×' : ''}</span></span></div>`).join('') +
+        `<div class="flabel" style="margin-top:18px"><span>Artists</span></div>` +
+        arts.map((a,i) => `<div class="spine t-artist">
+          <span class="rank">${i+1}</span>${tile({type:'artist',name:a.name,art:a.art},'lab')}
+          <span class="txt"><span class="ttl">${esc(a.name)}</span>
+            <span class="art">${a.n ? a.n+' plays' : ''}</span></span></div>`).join('');
+    }
+
+  } else if(c.kind === 'mins'){
+    const rows = minsBy(c.by);
+    if(!rows.length){
+      body = `<div class="empty"><b>Nothing counted yet</b>
+        ${c.by === 'playlist'
+          ? 'Plays only carry a playlist when you start them from one — shuffle from an album or your library counts as loose.'
+          : 'This fills from your listening history once Spotify is connected.'}</div>`;
+    } else {
+      const max = rows[0].ms;
+      body = rows.slice(0,25).map(r => `<div class="barwrap">
+        <div class="barhead"><span class="nm">${esc(r.name)}</span>
+          <span class="vl">${mins(r.ms)} min</span></div>
+        <div class="track"><div class="fill" style="width:${Math.max(2,(r.ms/max*100)).toFixed(1)}%"></div></div>
+      </div>`).join('');
+    }
+  }
+
+  $('#sheet').innerHTML = `<div class="grab"></div>
+    <h2 class="sheettitle">${esc(c.t)}</h2>
+    <p class="sheetsub">${
+      c.kind === 'rated' ? (pins[k]?.length ? 'Arranged by you' : 'Ranked by your ratings')
+      : c.kind === 'plays' ? `Counted over the last ${c.days} days`
+      : c.kind === 'mins' ? 'All time' : `${shelf.length} waiting` }</p>
+    ${body}${foot}`;
+  $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
+  $('#sheet').scrollTop = 0;
+  $('#sheet').dataset.crate = k;
+}
+
+/* ══ rating something ══════════════════════════════════════════ */
 let draft = null;
 function openSheet(rec, existing){
-  draft = existing
-    ? {...existing}
-    : {id:'e'+Date.now()+randStr(4), ...rec, rating:0, note:'', date:today(), created:Date.now()};
+  draft = existing ? { ...existing }
+    : { id:'e'+Date.now()+randStr(4), ...rec, rating:0, note:'', date:today(), created:Date.now() };
+  const isArtist = draft.type === 'artist';
   $('#sheet').innerHTML = `
     <div class="grab"></div>
     <div class="shead">
-      <img src="${esc(draft.art)}" alt="">
+      ${tile(draft, isArtist ? 'round' : '')}
       <div>
-        <h2>${esc(draft.album)}</h2>
-        <p>${esc(draft.artist)}</p>
-        ${draft.year ? `<em>${esc(draft.year)}</em>` : ''}
+        <h2>${esc(draft.name)}</h2>
+        <p>${isArtist ? esc(draft.genre) : esc(draft.artist)}</p>
+        <em>${esc(draft.type)}${draft.year ? ' · '+esc(draft.year) : ''}${
+          !isArtist && draft.genre ? ' · '+esc(draft.genre) : ''}</em>
       </div>
     </div>
     <div class="field">
-      <div class="flabel"><span>Rating</span><span id="rnum">${draft.rating ? draft.rating.toFixed(1) : '—'}</span></div>
+      <div class="flabel"><span>Rating</span><span id="rnum">${draft.rating?draft.rating.toFixed(1):'—'}</span></div>
       <div id="rate" class="notches lg">${marks(draft.rating)}</div>
     </div>
     <div class="field">
@@ -582,7 +1011,7 @@ function openSheet(rec, existing){
       <textarea id="note" placeholder="What did it do to you?">${esc(draft.note)}</textarea>
     </div>
     <div class="field">
-      <div class="flabel"><span>Listened on</span></div>
+      <div class="flabel"><span>Heard on</span></div>
       <input type="date" id="when" value="${draft.date}" max="${today()}">
     </div>
     <div class="row">
@@ -590,11 +1019,12 @@ function openSheet(rec, existing){
       ${existing ? '<button class="btn d" id="rm">Delete</button>' : ''}
     </div>`;
   $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
+  $('#sheet').scrollTop = 0; delete $('#sheet').dataset.crate;
 
   $('#rate').onclick = ev => {
     const n = ev.target.dataset.n; if(!n) return;
     const v = +n / 2;
-    draft.rating = (draft.rating === v) ? 0 : v;   // tap the same notch again to clear
+    draft.rating = (draft.rating === v) ? 0 : v;
     $('#rate').innerHTML = marks(draft.rating);
     $('#rnum').textContent = draft.rating ? draft.rating.toFixed(1) : '—';
   };
@@ -603,79 +1033,217 @@ function openSheet(rec, existing){
     draft.date = $('#when').value || today();
     const i = entries.findIndex(e => e.id === draft.id);
     if(i >= 0) entries[i] = draft; else entries.unshift(draft);
-    save(); drawDiary(); closeSheet();
+    saveEntries(); rebuildLogged(); drawDiary(); drawShelf(); closeSheet();
     toast(i >= 0 ? 'Saved' : 'Logged');
   };
   if(existing){
-    let armed = false;
-    const rm = $('#rm');
+    let armed = false; const rm = $('#rm');
     rm.onclick = () => {
-      if(!armed){                       // one tap arms it, the next one does it
-        armed = true; rm.textContent = 'Sure?';
-        setTimeout(() => { armed = false; rm.textContent = 'Delete' }, 3000);
-        return;
-      }
+      if(!armed){ armed = true; rm.textContent = 'Sure?';
+        setTimeout(() => { armed = false; rm.textContent = 'Delete' }, 3000); return }
       entries = entries.filter(e => e.id !== draft.id);
-      save(); drawDiary(); closeSheet(); toast('Deleted');
+      for(const k in pins){ pins[k] = pins[k].filter(id => id !== draft.id) }
+      saveEntries(); savePins(); rebuildLogged(); drawDiary(); drawShelf(); closeSheet();
+      toast('Deleted');
     };
   }
 }
 function closeSheet(){
-  $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); draft = null;
+  $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on');
+  draft = null; editing = null;
 }
 $('#scrim').onclick = closeSheet;
 
-/* ── search ─────────────────────────────────────────────────── */
-let hits = [], tmr;
+/* ══ find ══════════════════════════════════════════════════════ */
+let hits = [], tmr, kind = 'album';
+const ENTITY = { album:'album', song:'song', artist:'musicArtist' };
+
+$('#seg').onclick = e => {
+  const b = e.target.closest('button'); if(!b) return;
+  kind = b.dataset.k;
+  document.querySelectorAll('#seg button').forEach(x => x.classList.toggle('on', x === b));
+  const t = $('#q').value.trim();
+  if(t.length >= 2) runSearch(t);
+};
 $('#q').oninput = e => {
   $('#sclear').style.display = e.target.value ? 'block' : 'none';
   clearTimeout(tmr);
-  const term = e.target.value.trim();
-  if(term.length < 2){ $('#results').innerHTML = ''; return }
-  tmr = setTimeout(() => runSearch(term), 330);
+  const t = e.target.value.trim();
+  if(t.length < 2){ $('#results').innerHTML = ''; return }
+  tmr = setTimeout(() => runSearch(t), 330);
 };
 $('#sclear').onclick = () => {
   $('#q').value = ''; $('#sclear').style.display = 'none';
   $('#results').innerHTML = ''; $('#q').focus();
 };
 
+function resultRow(r, i){
+  const on = logged.has(key(r));
+  return `<div class="res">${tile(r, r.type==='artist'?'round':'')}
+    <div class="m"><b>${esc(r.name)}</b>
+      ${r.type!=='artist' ? `<i>${esc(r.artist)}</i>` : ''}
+      <em>${esc(r.genre)}${r.year ? ' · '+esc(r.year) : ''}</em></div>
+    <div class="acts">
+      <button class="mini go" data-log="${i}">${on ? 'Again' : 'Rate'}</button>
+      ${r.type==='artist' ? '' : `<button class="mini" data-later="${i}">Later</button>`}
+    </div></div>`;
+}
+
 async function runSearch(term){
   $('#results').innerHTML = `<div class="empty"><span class="spin"></span></div>`;
+  const mine = kind;
   try{
-    const raw = await itunes(term);
-    hits = raw.map(fromItunes).filter(r => r.album && r.artist);
-    if(!hits.length){
-      $('#results').innerHTML = `<div class="empty"><b>No records found</b>
-        Try the artist's name on its own, or check the spelling.</div>`;
-      return;
-    }
-    $('#results').innerHTML = hits.map((r,i) => `<div class="res">
-        <img src="${esc(r.art)}" alt="" loading="lazy">
-        <div class="m"><b>${esc(r.album)}</b><i>${esc(r.artist)}</i>
-          ${r.year ? `<em>${esc(r.year)}</em>` : ''}</div>
-        <div class="acts">
-          <button class="mini go" data-log="${i}">Log</button>
-          <button class="mini" data-shelf="${i}">Shelf</button>
-        </div>
-      </div>`).join('');
+    const raw = await searchIT(term, ENTITY[mine]);
+    if(mine !== kind) return;
+    hits = raw.map(fromIT).filter(r => r.name && r.artist);
+    $('#results').innerHTML = hits.length
+      ? hits.map(resultRow).join('')
+      : `<div class="empty"><b>Nothing found</b>
+          Try just the artist's name, or switch the tab above.</div>`;
   }catch{
     $('#results').innerHTML = `<div class="empty"><b>Search didn't go through</b>
       You may be offline. Try again in a moment.</div>`;
   }
 }
 
-/* ── Spotify rail ───────────────────────────────────────────── */
+/* ══ discover ══════════════════════════════════════════════════
+   No recommendation API is open to a dev-mode app any more, so
+   this works off your own ratings: it walks out from the artists
+   and genres you scored highest and drops anything you've logged.
+   ══════════════════════════════════════════════════════════════ */
+let dhits = [];
+function fillPicker(){
+  const mode = $('#dmode').value, sel = $('#dpick');
+  if(mode === 'overall'){ sel.style.display = 'none'; return }
+  sel.style.display = 'block';
+  if(mode === 'artist'){
+    const seen = new Map();
+    for(const e of [...entries].sort((a,b) => b.rating - a.rating))
+      if(e.artistId && !seen.has(e.artist)) seen.set(e.artist, e.artistId);
+    sel.innerHTML = seen.size
+      ? [...seen].map(([n,id]) => `<option value="${esc(id)}">${esc(n)}</option>`).join('')
+      : '<option value="">Rate something first</option>';
+  } else {
+    const gs = [...new Set(entries.map(e => e.genre))].filter(g => g && g !== 'Unfiled');
+    sel.innerHTML = gs.length
+      ? gs.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('')
+      : '<option value="">Rate something first</option>';
+  }
+}
+
+async function discover(){
+  const mode = $('#dmode').value, pick = $('#dpick').value;
+  const out = $('#dout');
+  if(!entries.length){
+    out.innerHTML = `<div class="empty"><b>Nothing to go on yet</b>
+      Rate a few things and this starts working from your own taste.</div>`; return;
+  }
+  out.innerHTML = `<div class="empty"><span class="spin"></span></div>`;
+  try{
+    let raw = [];
+    if(mode === 'artist' && pick){
+      raw = (await lookupIT(pick, 'song', 25)).filter(r => r.wrapperType === 'track');
+    } else if(mode === 'genre' && pick){
+      raw = await searchIT(pick, 'song', 25);
+    } else {
+      const ids = [...new Set([...entries].sort((a,b) => b.rating - a.rating)
+        .filter(e => e.artistId).map(e => e.artistId))].slice(0,3);
+      if(!ids.length){
+        const gs = [...new Set(entries.map(e => e.genre))].filter(g => g !== 'Unfiled').slice(0,1);
+        raw = gs.length ? await searchIT(gs[0], 'song', 25) : [];
+      } else {
+        const sets = await Promise.all(ids.map(id => lookupIT(id, 'song', 12).catch(() => [])));
+        raw = sets.flat().filter(r => r.wrapperType === 'track');
+      }
+    }
+    dhits = raw.map(fromIT)
+      .filter(r => r.name && r.artist && !logged.has(key(r)))
+      .filter((r,i,a) => a.findIndex(x => key(x) === key(r)) === i)
+      .slice(0,20);
+    out.innerHTML = dhits.length
+      ? dhits.map((r,i) => `<div class="res">${tile(r)}
+          <div class="m"><b>${esc(r.name)}</b><i>${esc(r.artist)}</i>
+            <em>${esc(r.genre)}</em></div>
+          <div class="acts">
+            <button class="mini go" data-dlog="${i}">Rate</button>
+            <button class="mini" data-dlater="${i}">Later</button></div></div>`).join('')
+      : `<div class="empty"><b>Nothing new here</b>
+          You've already logged everything this turned up. Try another artist or genre.</div>`;
+  }catch{
+    out.innerHTML = `<div class="empty"><b>Couldn't load suggestions</b>
+      You may be offline. Try again in a moment.</div>`;
+  }
+}
+$('#dmode').onchange = () => { fillPicker(); discover() };
+$('#dpick').onchange = discover;
+
+/* ══ events ════════════════════════════════════════════════════ */
+document.body.addEventListener('error', e => {
+  if(e.target.tagName === 'IMG') e.target.style.visibility = 'hidden';
+}, true);
+
+function addLater(r){
+  const k = key(r);
+  if(shelf.some(s => s.k === k)) return false;
+  shelf.unshift({ ...r, k, added:Date.now() }); saveShelf(); drawShelf(); return true;
+}
+
+document.body.addEventListener('click', e => {
+  const t = e.target.closest('[data-id],[data-log],[data-later],[data-rail],[data-crate],'+
+    '[data-shelf-log],[data-shelf-rm],[data-edit],[data-editdone],[data-editreset],[data-mv],'+
+    '[data-dlog],[data-dlater]');
+  if(!t) return;
+  const d = t.dataset;
+
+  if(d.id){ const en = entries.find(x => x.id === d.id); if(en) openSheet(null, en) }
+  else if(d.log !== undefined)    openSheet(hits[+d.log]);
+  else if(d.dlog !== undefined)   openSheet(dhits[+d.dlog]);
+  else if(d.rail !== undefined)   openSheet(railRecs[+d.rail]);
+  else if(d.crate)                openCrate(d.crate);
+  else if(d.later !== undefined){
+    if(addLater(hits[+d.later])){ t.textContent = 'Saved'; t.classList.add('done') }
+    else toast('Already set aside');
+  }
+  else if(d.dlater !== undefined){
+    if(addLater(dhits[+d.dlater])){ t.textContent = 'Saved'; t.classList.add('done') }
+    else toast('Already set aside');
+  }
+  else if(d.shelfLog){
+    const r = shelf.find(s => s.k === d.shelfLog);
+    if(r) openSheet({ type:r.type, name:r.name, artist:r.artist, album:r.album,
+                      art:r.art, year:r.year, genre:r.genre, artistId:r.artistId });
+  }
+  else if(d.shelfRm){
+    shelf = shelf.filter(s => s.k !== d.shelfRm); saveShelf(); drawShelf(); openCrate('later');
+  }
+  else if(d.edit){
+    editing = d.edit;
+    if(!pins[editing]) pins[editing] = top5(editing, crates().find(c=>c.k===editing).f).map(x=>x.id);
+    savePins(); openCrate(editing);
+  }
+  else if(d.editdone){ const k = $('#sheet').dataset.crate; editing = null; openCrate(k) }
+  else if(d.editreset){ delete pins[d.editreset]; savePins(); editing = null;
+                        drawShelf(); openCrate(d.editreset); toast('Back to automatic') }
+  else if(d.mv){
+    const [op, arg] = d.mv.split(':');
+    const k = $('#sheet').dataset.crate; const arr = pins[k] || [];
+    const i = +arg;
+    if(op === 'up' && i > 0)                 [arr[i-1], arr[i]] = [arr[i], arr[i-1]];
+    else if(op === 'dn' && i < arr.length-1) [arr[i+1], arr[i]] = [arr[i], arr[i+1]];
+    else if(op === 'rm')                     arr.splice(i,1);
+    else if(op === 'ad' && arr.length < 5 && !arr.includes(arg)) arr.push(arg);
+    pins[k] = arr; savePins(); drawShelf(); openCrate(k);
+  }
+});
+
+/* ══ the rail ══════════════════════════════════════════════════ */
 let railRecs = [];
-async function loadRail(){
-  if(!DB.get('tok', null)) return;
-  let d;
-  try{ d = await api('/me/player/recently-played?limit=50') }
-  catch{ return }
-  if(!d || !d.items) return;
+function drawRail(){
   const seen = new Set(); railRecs = [];
-  for(const it of d.items){
-    const al = it.track?.album; if(!al) continue;
-    const r = fromSpotify(al); const k = key(r);
+  for(const p of plays){
+    const r = { type:'song', name:p.name, artist:p.artist, album:p.album,
+                art:p.art, year:'', genre:'Unfiled' };
+    const k = key(r);
     if(seen.has(k)) continue;
     seen.add(k); railRecs.push(r);
     if(railRecs.length === 12) break;
@@ -684,51 +1252,18 @@ async function loadRail(){
   $('#railwrap').style.display = 'block';
   $('#rail').innerHTML = railRecs.map((r,i) => `
     <button class="rchip" data-rail="${i}" style="animation-delay:${i*28}ms">
-      <img src="${esc(r.art)}" alt="" loading="lazy">
-      <b>${esc(r.album)}</b><i>${esc(r.artist)}</i>
-    </button>`).join('');
+      ${tile(r)}
+      <b>${esc(r.name)}</b><i>${esc(r.artist)}</i></button>`).join('');
 }
 
-/* Artwork that 404s or dies offline should just leave a quiet square,
-   not a broken-image icon. Capture phase — img errors don't bubble. */
-document.body.addEventListener('error', e => {
-  if(e.target.tagName === 'IMG') e.target.style.visibility = 'hidden';
-}, true);
-
-/* ── delegated taps ─────────────────────────────────────────── */
-document.body.addEventListener('click', e => {
-  const t = e.target.closest('[data-id],[data-log],[data-shelf],[data-rail],[data-shelf-log],[data-shelf-rm]');
-  if(!t) return;
-  const d = t.dataset;
-  if(d.id){
-    const en = entries.find(x => x.id === d.id);
-    if(en) openSheet(null, en);
-  }
-  else if(d.log !== undefined) openSheet(hits[+d.log]);
-  else if(d.rail !== undefined) openSheet(railRecs[+d.rail]);
-  else if(d.shelf !== undefined){
-    const r = hits[+d.shelf], k = key(r);
-    if(shelf.some(s => s.k === k)){ toast('Already on the shelf'); return }
-    shelf.unshift({...r, k, added:Date.now()}); save();
-    t.textContent = 'On shelf'; t.classList.add('done');
-    drawShelf();
-  }
-  else if(d.shelfLog){
-    const r = shelf.find(s => s.k === d.shelfLog);
-    if(r) openSheet({album:r.album, artist:r.artist, art:r.art, year:r.year});
-  }
-  else if(d.shelfRm){
-    shelf = shelf.filter(s => s.k !== d.shelfRm); save(); drawShelf();
-  }
-});
-
-/* ── nav ────────────────────────────────────────────────────── */
+/* ══ nav ═══════════════════════════════════════════════════════ */
 function go(p){
   document.querySelectorAll('.pane').forEach(x => x.classList.toggle('on', x.id === 'p-'+p));
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
   window.scrollTo(0,0);
-  if(p === 'find') setTimeout(() => $('#q').focus(), 90);
+  if(p === 'find')  setTimeout(() => $('#q').focus(), 90);
   if(p === 'shelf') drawShelf();
+  if(p === 'disc' && !$('#dout').innerHTML){ fillPicker(); discover() }
 }
 $('#nav').onclick = e => { const b = e.target.closest('button'); if(b) go(b.dataset.p) };
 $('#gear').onclick = () => {
@@ -737,40 +1272,48 @@ $('#gear').onclick = () => {
   drawSettings(); window.scrollTo(0,0);
 };
 
-/* ── settings ───────────────────────────────────────────────── */
+/* ══ settings ══════════════════════════════════════════════════ */
 function drawSettings(){
   $('#ruri').textContent = REDIRECT;
   const on = !!DB.get('tok', null);
   $('#cid').value = CLIENT_ID;
   $('#spstate').innerHTML = !CLIENT_ID
     ? '<span class="dot"></span>Enter your Client ID below, then connect.'
-    : on ? '<span class="dot live"></span>Connected. Your recent plays show up on the Log tab.'
-         : '<span class="dot"></span>Not connected. Connecting adds a one-tap row of what you just played.';
+    : on ? '<span class="dot live"></span>Connected.'
+         : '<span class="dot"></span>Not connected.';
   $('#spbtn').textContent = on ? 'Disconnect' : 'Connect';
   $('#spbtn').onclick = on
-    ? () => { DB.del('tok'); $('#railwrap').style.display='none'; drawSettings(); toast('Disconnected') }
+    ? () => { DB.del('tok'); drawSettings(); toast('Disconnected') }
     : spotifyLogin;
+  const last = DB.get('lastSync', 0);
+  $('#playnote').textContent = plays.length
+    ? `${plays.length} plays recorded${last ? ', last checked '+label(new Date(last).toISOString().slice(0,10)).toLowerCase() : ''}. `
+      + 'Spotify only returns your last 50 plays, so open the app now and then to avoid gaps.'
+    : 'Nothing recorded yet. This counts from the day you connect — there is no way to backfill.';
 }
 
 $('#cidsave').onclick = () => {
   const v = $('#cid').value.trim();
-  if(v && !/^[a-zA-Z0-9]{20,}$/.test(v)){
-    toast("That doesn't look like a Client ID"); return;
-  }
+  if(v && !/^[a-zA-Z0-9]{20,}$/.test(v)){ toast("That doesn't look like a Client ID"); return }
   CLIENT_ID = v;
   if(v) DB.set('clientId', v); else DB.del('clientId');
-  DB.del('tok');                       // a different app means the old token is void
-  drawSettings();
+  DB.del('tok'); drawSettings();
   toast(v ? 'Saved — now tap Connect' : 'Client ID cleared');
+};
+$('#syncnow').onclick = async () => {
+  $('#syncnow').textContent = 'Syncing…';
+  await syncPlays(true); await syncTops();
+  drawRail(); drawShelf(); drawSettings();
+  $('#syncnow').textContent = 'Sync now';
 };
 
 $('#exp').onclick = () => {
-  const blob = new Blob([JSON.stringify({v:1, clientId:CLIENT_ID, entries, shelf}, null, 2)],
-    {type:'application/json'});
+  const blob = new Blob([JSON.stringify(
+    { v:2, clientId:CLIENT_ID, entries, shelf, plays, plnames, pins }, null, 2)],
+    { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `crateside-${today()}.json`;
-  a.click(); URL.revokeObjectURL(a.href);
+  a.download = `crateside-${today()}.json`; a.click(); URL.revokeObjectURL(a.href);
 };
 $('#imp').onclick = () => $('#fileimp').click();
 $('#fileimp').onchange = ev => {
@@ -786,21 +1329,33 @@ $('#fileimp').onchange = ev => {
         const hs = new Set(shelf.map(s => s.k));
         shelf = [...shelf, ...d.shelf.filter(s => !hs.has(s.k))];
       }
+      if(Array.isArray(d.plays)){
+        const hp = new Set(plays.map(p => p.ts));
+        plays = [...plays, ...d.plays.filter(p => !hp.has(p.ts))]
+                  .sort((a,b) => b.ts.localeCompare(a.ts));
+      }
+      if(d.plnames) plnames = { ...d.plnames, ...plnames };
+      if(d.pins)    pins    = { ...d.pins, ...pins };
       if(d.clientId && !CLIENT_ID){ CLIENT_ID = d.clientId; DB.set('clientId', d.clientId) }
-      save(); drawDiary(); drawShelf(); drawSettings();
+      saveEntries(); saveShelf(); savePlays(); savePins(); DB.set('plnames', plnames);
+      rebuildLogged(); drawDiary(); drawShelf(); drawRail(); drawSettings();
       toast(`Imported ${d.entries.length}`);
     }catch{ toast("That file isn't a Crateside export") }
   };
   rd.readAsText(f); ev.target.value = '';
 };
 
-/* ── boot ───────────────────────────────────────────────────── */
+/* ══ boot ══════════════════════════════════════════════════════ */
 (async () => {
   await handleCallback();
-  drawDiary(); drawShelf(); drawSettings();
-  loadRail();
-  if('serviceWorker' in navigator)
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  rebuildLogged();
+  drawDiary(); drawShelf(); drawRail(); drawSettings();
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if(DB.get('tok', null)){
+    await syncPlays(false);
+    drawRail(); drawShelf();
+    if(Date.now() - (tops.at||0) > 6*3600e3){ await syncTops(); }
+  }
 })();
 </script>
 </body>
