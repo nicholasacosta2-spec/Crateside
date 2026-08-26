@@ -348,6 +348,7 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
   z-index:1;box-shadow:0 1px 3px rgba(0,0,0,.6)}
 .sleeve .disc::after{content:'';position:absolute;inset:33%;border-radius:50%;
   background:var(--sc,var(--ember));box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+.sleeve .cov.mono{font-size:22px;border-radius:3px}
 .sleeve.want .cov{filter:saturate(.45) brightness(.72)}
 
 .rec{display:flex;gap:12px;align-items:center;padding:11px 0;
@@ -515,7 +516,7 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
 
     <div class="set">
       <h3>Catalogue</h3>
-      <p class="note" id="catstate">Search runs on the iTunes catalogue, with MusicBrainz as a backup.</p>
+      <p class="note" id="catstate">Search asks Spotify, iTunes and MusicBrainz at once and merges what comes back.</p>
       <div class="row"><button class="btn s" id="cattest">Run a check</button></div>
     </div>
 
@@ -791,36 +792,43 @@ async function itunes(p){
 
 const CATMSG = {
   rate:    "Apple limits this to about 20 searches a minute. Give it a minute and try again.",
-  timeout: "The catalogue didn't answer. That's usually Apple's 20-per-minute limit — wait a moment and try again.",
-  blocked: "Couldn't reach the catalogue. Check your connection, or wait a minute if you've been searching a lot — Apple caps it at about 20 a minute."
+  timeout: "Neither catalogue answered. Wait a moment and try again — if it keeps happening, run the check under the gear.",
+  blocked: "Neither catalogue could be reached. Run the check under the gear to see which one is blocked."
 };
 const catMsg = e => CATMSG[e && e.kind] || CATMSG.blocked;
 
 /* ── MusicBrainz, the backup ─────────────────────────────────
    Open, CORS-enabled, no key. Plenty of content blockers list
    itunes.apple.com because it doubles as an affiliate endpoint,
-   so when Apple won't answer we fall through to here. No artwork
-   comes back from MusicBrainz — those records get a monogram. */
+   so when Apple won't answer we fall through to here. Artwork comes
+   from the Cover Art Archive, which is keyed off the same ids; where
+   a release has no scan, the image 404s and degrades to a monogram. */
+const CAA = (kind, id) => id ? `https://coverartarchive.org/${kind}/${id}/front-250` : '';
 const MB = {
-  album:  { path:'release-group', extra:'%20AND%20primarytype:album', list:'release-groups' },
-  song:   { path:'recording',     extra:'',                           list:'recordings' },
-  artist: { path:'artist',        extra:'',                           list:'artists' }
+  album:  { path:'release-group', list:'release-groups' },
+  song:   { path:'recording',     list:'recordings' },
+  artist: { path:'artist',        list:'artists' }
 };
 const MBKIND = { album:'album', song:'song', musicArtist:'artist' };
 
 async function mbSearch(term, entity){
   const m = MB[MBKIND[entity] || entity];
   if(!m) throw catErr('blocked');
+  /* dismax makes it read a plain phrase the way a person means it.
+     Without it the Lucene parser buries the obvious answer. */
   const url = `https://musicbrainz.org/ws/2/${m.path}`
-            + `?query=${encodeURIComponent(term)}${m.extra}&fmt=json&limit=25`;
+            + `?query=${encodeURIComponent(term)}&dismax=true&fmt=json&limit=30`;
   let r;
   try{ r = await fetch(url, { headers:{ Accept:'application/json' } }) }
   catch{ throw catErr('blocked') }
   if(r.status === 503) throw catErr('rate');
   if(!r.ok) throw catErr('blocked');
   const d = await r.json();
-  const rows = d[m.list] || [];
+  let rows = d[m.list] || [];
   const kind = MBKIND[entity] || entity;
+  if(kind === 'album')
+    rows = rows.filter(x => !x['primary-type'] || ['Album','EP'].includes(x['primary-type']));
+  rows = rows.filter(x => x.score === undefined || x.score >= 40);
   const tag = x => (x.tags || []).sort((a,b) => (b.count||0)-(a.count||0))[0]?.name;
   const cap = t => t ? t.replace(/\b\w/g, c => c.toUpperCase()) : 'Unfiled';
   return rows.map(x => {
@@ -828,31 +836,90 @@ async function mbSearch(term, entity){
     if(kind === 'artist')
       return { type:'artist', name:x.name, artist:x.name, album:'', art:'',
                year:(x['life-span']?.begin || '').slice(0,4), genre:cap(tag(x)), artistId:'' };
-    if(kind === 'song')
-      return { type:'song', name:x.title, artist:who, album:(x.releases||[])[0]?.title || '',
-               art:'', year:((x.releases||[])[0]?.date || '').slice(0,4),
+    if(kind === 'song'){
+      const rel = (x.releases || [])[0];
+      return { type:'song', name:x.title, artist:who, album:rel?.title || '',
+               art:CAA('release', rel?.id), year:(rel?.date || '').slice(0,4),
                genre:cap(tag(x)), artistId:'', ms:x.length || 0 };
-    return { type:'album', name:x.title, artist:who, album:x.title, art:'',
+    }
+    return { type:'album', name:x.title, artist:who, album:x.title,
+             art:CAA('release-group', x.id),
              year:(x['first-release-date'] || '').slice(0,4), genre:cap(tag(x)), artistId:'' };
   }).filter(r => r.name && r.artist);
 }
 
-/* Which source answered last — shown under the gear so you can see it. */
-let catSource = null;
+/* ── Spotify as a catalogue ──────────────────────────────────
+   You're already signed in, and its relevance ranking is the best
+   of the three. Dev mode caps it at 10 results, which is why it's
+   merged with the others rather than used on its own. */
+async function spSearch(term, entity){
+  const t = { album:'album', song:'track', musicArtist:'artist' }[entity];
+  if(!t) throw catErr('blocked');
+  const d = await api(`/search?q=${encodeURIComponent(term)}&type=${t}&limit=10`);
+  if(!d) throw catErr('blocked');
+  const cap = g => g ? g.replace(/\b\w/g, c => c.toUpperCase()) : 'Unfiled';
+  if(t === 'artist') return (d.artists?.items || []).map(a => ({
+    type:'artist', name:a.name, artist:a.name, album:'', art:a.images?.[0]?.url || '',
+    year:'', genre:cap((a.genres || [])[0]), artistId:'' }));
+  if(t === 'album') return (d.albums?.items || []).map(a => ({
+    type:'album', name:a.name, artist:(a.artists||[]).map(x=>x.name).join(', '),
+    album:a.name, art:a.images?.[0]?.url || '', year:(a.release_date||'').slice(0,4),
+    genre:'Unfiled', artistId:'' }));
+  return (d.tracks?.items || []).map(x => ({
+    type:'song', name:x.name, artist:(x.artists||[]).map(a=>a.name).join(', '),
+    album:x.album?.name || '', art:x.album?.images?.[0]?.url || '',
+    year:(x.album?.release_date||'').slice(0,4), genre:'Unfiled', artistId:'',
+    ms:x.duration_ms || 0 }));
+}
 
+/* Which sources answered last — shown under the gear. */
+let catSources = [];
+let itunesMisses = 0;
+
+/* ══ one search, every catalogue ═══════════════════════════════
+   No single source covers everything: Spotify ranks best but only
+   returns ten, MusicBrainz goes deepest on reissues and anything
+   non-commercial, iTunes sits in between. So ask all of them at
+   once and merge. First source to claim a title wins its position;
+   later ones are still used to fill in missing artwork.
+   ══════════════════════════════════════════════════════════════ */
 async function searchIT(term, entity, limit=25){
   const ck = 'S|' + entity + '|' + term;
   if(catCache.has(ck)) return catCache.get(ck);
-  let out, first;
-  try{
-    out = await itunes({ path:'search', q:{ media:'music', entity, limit, term } });
-    catSource = 'iTunes';
-  }catch(e){
-    first = e;
-    if(e.kind !== 'rate'){
-      try{ out = await mbSearch(term, entity); catSource = 'MusicBrainz' }
-      catch{ throw first }
-    } else throw e;
+
+  const src = [];
+  if(DB.get('tok', null)) src.push(['Spotify', () => spSearch(term, entity)]);
+  if(itunesMisses < 2) src.push(['iTunes',
+    () => itunes({ path:'search', q:{ media:'music', entity, limit, term } })]);
+  src.push(['MusicBrainz', () => mbSearch(term, entity)]);
+
+  const settled = await Promise.allSettled(src.map(([, f]) => f()));
+
+  const iAt = src.findIndex(x => x[0] === 'iTunes');
+  if(iAt >= 0) itunesMisses = settled[iAt].status === 'fulfilled' ? 0 : itunesMisses + 1;
+
+  const out = [], at = new Map();
+  catSources = [];
+  settled.forEach((r, i) => {
+    if(r.status !== 'fulfilled') return;
+    catSources.push(src[i][0]);
+    for(const raw of r.value){
+      const x = shape(raw);
+      if(!x.name || !x.artist) continue;
+      const k = key(x);
+      if(at.has(k)){
+        const held = out[at.get(k)];        // same record, better picture
+        if(!held.art && x.art) held.art = x.art;
+        if(held.genre === 'Unfiled' && x.genre !== 'Unfiled') held.genre = x.genre;
+        if(!held.artistId && x.artistId) held.artistId = x.artistId;
+        continue;
+      }
+      at.set(k, out.length); out.push(x);
+    }
+  });
+
+  if(!out.length && settled.every(r => r.status === 'rejected')){
+    throw settled.find(r => r.reason?.kind === 'rate')?.reason || catErr('blocked');
   }
   catCache.set(ck, out);
   return out;
@@ -889,7 +956,8 @@ const rebuildLogged = () => { logged.clear(); entries.forEach(e => logged.add(ke
 /* Artists have no artwork in the catalogue, so they get a stamped monogram. */
 const initial = n => (String(n).trim()[0] || '?').toUpperCase();
 function tile(r, cls=''){
-  if(r.art) return `<img class="${cls}" src="${esc(r.art)}" alt="" loading="lazy">`;
+  if(r.art) return `<img class="${cls}" src="${esc(r.art)}" alt="" loading="lazy"
+    data-mono="${esc(initial(r.name))}">`;
   return `<span class="mono ${cls}">${esc(initial(r.name))}</span>`;
 }
 
@@ -1455,8 +1523,9 @@ const totalSpent = () => vinyl.reduce((n,v) => n + (+v.price || 0), 0);
 
 function sleeve(v){
   return `<span class="sleeve${v.want?' want':''}">
-    ${v.art ? `<img class="cov" src="${esc(v.art)}" alt="" loading="lazy">`
-            : `<span class="cov mono" style="display:flex;align-items:center;justify-content:center;font-size:22px">${esc(initial(v.name))}</span>`}
+    ${v.art ? `<img class="cov" src="${esc(v.art)}" alt="" loading="lazy"
+                    data-mono="${esc(initial(v.name))}">`
+            : `<span class="cov mono">${esc(initial(v.name))}</span>`}
     <span class="disc"></span></span>`;
 }
 
@@ -1806,7 +1875,9 @@ async function runSearch(term){
     if(mine !== kind) return;
     hits = raw.map(shape).filter(r => r.name && r.artist);
     $('#results').innerHTML = hits.length
-      ? hits.map(resultRow).join('')
+      ? `<div class="flabel" style="margin-top:14px"><span>${hits.length} results</span>
+          <span>${esc(catSources.join(' + ') || '—')}</span></div>`
+        + hits.map(resultRow).join('')
       : `<div class="empty"><b>Nothing found</b>
           Try just the artist's name, or switch the tab above.</div>`;
   }catch(e){
@@ -1888,8 +1959,17 @@ $('#dmode').onchange = () => { fillPicker(); discover() };
 $('#dpick').onchange = discover;
 
 /* ══ events ════════════════════════════════════════════════════ */
+/* Not every release has a scan in the Cover Art Archive. When one is
+   missing, swap the image for a monogram rather than leaving a hole.
+   Capture phase — image errors don't bubble. */
 document.body.addEventListener('error', e => {
-  if(e.target.tagName === 'IMG') e.target.style.visibility = 'hidden';
+  const el = e.target;
+  if(el.tagName !== 'IMG' || el.dataset.fell) return;
+  el.dataset.fell = '1';
+  const span = document.createElement('span');
+  span.className = ('mono ' + (el.className || '')).trim();
+  span.textContent = el.dataset.mono || '?';
+  el.replaceWith(span);
 }, true);
 
 function addLater(r){
@@ -2098,19 +2178,30 @@ $('#cattest').onclick = async () => {
     lines.push('<span class="dot"></span>iTunes direct — refused by the browser or blocked');
   }
 
-  // The backup
-  try{
-    const n = (await mbSearch('miles davis', 'album')).length;
-    lines.push(`<span class="dot live"></span>MusicBrainz backup — working (${n} results)`);
-  }catch{
-    lines.push('<span class="dot"></span>MusicBrainz backup — unreachable');
+  // Spotify, which you're already signed in to
+  if(DB.get('tok', null)){
+    try{
+      const n = (await spSearch('miles davis', 'album')).length;
+      lines.push(`<span class="dot live"></span>Spotify — working (${n} results)`);
+    }catch{
+      lines.push('<span class="dot"></span>Spotify — not answering');
+    }
+  } else {
+    lines.push('<span class="dot"></span>Spotify — not connected (connect it above for better ranking)');
   }
 
-  const both = lines.filter(l => l.includes('dot live')).length;
-  lines.push(both === 0
+  // The deep one
+  try{
+    const n = (await mbSearch('miles davis', 'album')).length;
+    lines.push(`<span class="dot live"></span>MusicBrainz — working (${n} results)`);
+  }catch{
+    lines.push('<span class="dot"></span>MusicBrainz — unreachable');
+  }
+
+  const live = lines.filter(l => l.includes('dot live')).length;
+  lines.push(live === 0
     ? '<br>Nothing is getting through. That points at a content blocker, a VPN, or Lockdown Mode — try Safari with those off.'
-    : both < 3 ? '<br>Enough is working for search to function.'
-               : '<br>All three sources are reachable.');
+    : `<br>${live} source${live>1?'s':''} reachable. Search merges whatever answers, so one blocked source costs you very little.`);
   out.innerHTML = lines.join('<br>');
 };
 
