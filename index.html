@@ -102,9 +102,9 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
 .spine::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;
   background:var(--sc,var(--line2))}
 .spine:active{transform:scale(.985);background:#252230}
-.spine.t-album{--sc:var(--ember)}
-.spine.t-song{--sc:var(--teal)}
-.spine.t-artist{--sc:var(--rose)}
+.t-album{--sc:var(--ember)}
+.t-song{--sc:var(--teal)}
+.t-artist{--sc:var(--rose)}
 .spine .lab{width:60px;height:60px;flex:0 0 60px;background:var(--sunk);
   object-fit:cover;margin-left:4px}
 .spine .txt{flex:1;min-width:0;padding:9px 12px;display:flex;flex-direction:column;
@@ -327,9 +327,65 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
   align-items:center;gap:4px;color:var(--dim);transition:color .16s}
 #nav .ic{width:22px;height:22px;display:block;transition:transform .2s cubic-bezier(.2,.9,.3,1)}
 #nav .ic svg{width:22px;height:22px;display:block}
-#nav .tx{font-size:9.5px;font-weight:700;letter-spacing:.04em}
+#nav .tx{font-size:9px;font-weight:700;letter-spacing:.02em}
+#nav button{min-width:0}
 #nav button.on{color:var(--gold)}
 #nav button.on .ic{transform:translateY(-2px) scale(1.12)}
+
+/* ══════════════════════════════════════════════════════════════
+   THE RACKS — physical records
+   A sleeve with the disc showing at its edge, the way a record sits
+   when it's half out. That edge is how you tell a record from a
+   rating at a glance.
+   ══════════════════════════════════════════════════════════════ */
+.sleeve{position:relative;flex:0 0 auto;width:78px;height:60px}
+.sleeve .cov{position:absolute;left:0;top:0;width:60px;height:60px;border-radius:3px;
+  background:var(--sunk);object-fit:cover;z-index:2;
+  box-shadow:2px 0 6px -1px rgba(0,0,0,.7)}
+.sleeve .disc{position:absolute;right:0;top:4px;width:52px;height:52px;border-radius:50%;
+  background:repeating-radial-gradient(circle at 50% 50%,
+    #241F2E 0 2px, #1A1622 2px 3.2px);
+  z-index:1;box-shadow:0 1px 3px rgba(0,0,0,.6)}
+.sleeve .disc::after{content:'';position:absolute;inset:33%;border-radius:50%;
+  background:var(--sc,var(--ember));box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+.sleeve.want .cov{filter:saturate(.45) brightness(.72)}
+
+.rec{display:flex;gap:12px;align-items:center;padding:11px 0;
+  border-bottom:1px solid var(--line);width:100%;text-align:left}
+.rec:active{opacity:.65}
+.rec .m{flex:1;min-width:0}
+.rec .m b{display:block;font-weight:700;font-size:14.5px;line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec .m i{font-style:normal;font-size:12.5px;color:var(--dim);display:block;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;align-items:center}
+.tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid var(--line2);border-radius:3px;padding:2px 5px;color:var(--dim)}
+.tag.fmt{border-color:var(--ember);color:var(--ember)}
+.tag.gr{border-color:var(--teal);color:var(--teal)}
+.tag.sp{border-color:var(--gold);color:var(--gold)}
+
+.spins{display:flex;align-items:center;gap:9px;background:var(--sunk);
+  border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:16px}
+.spins .cnt{font-family:var(--display);font-size:26px;line-height:1;color:var(--gold)}
+.spins .lb{flex:1;font-size:12.5px;color:var(--dim);line-height:1.35}
+.spinbtn{background:linear-gradient(100deg,var(--gold),var(--ember));color:#171319;
+  font-weight:700;font-size:14px;padding:12px 18px;border-radius:10px}
+.spinbtn:active{filter:brightness(.9)}
+.unspin{border:1px solid var(--line2);color:var(--dim);border-radius:10px;
+  width:42px;height:42px;font-size:18px}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line2);border-radius:8px;padding:9px 12px;
+  font-size:13px;font-weight:500;color:var(--dim);min-height:38px}
+.chip.on{background:var(--paper);color:var(--base);border-color:var(--paper);font-weight:700}
+.chip:active{background:var(--line)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.tin{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:10px;
+  padding:12px;font-size:16px}
+.tin:focus{border-color:var(--teal)}
+.tin::placeholder{color:var(--dim)}
+.addbar{display:flex;gap:10px;margin:14px 0 4px}
 
 /* ---------- misc ---------- */
 .empty{padding:34px 6px;color:var(--dim);font-size:14.5px;line-height:1.65}
@@ -410,6 +466,19 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
     <div id="shelves"></div>
   </section>
 
+  <!-- ══ RACKS ══ -->
+  <section class="pane" id="p-rack">
+    <div id="rackstats"></div>
+    <div class="seg" id="rseg">
+      <button data-r="own" class="on">Collection</button>
+      <button data-r="want">Wantlist</button>
+    </div>
+    <div class="addbar">
+      <button class="btn p" id="addrec">Add a record</button>
+    </div>
+    <div id="racklist"></div>
+  </section>
+
   <!-- ══ DISCOVER ══ -->
   <section class="pane" id="p-disc">
     <div class="eyebrow">Might suit you</div>
@@ -463,6 +532,7 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
 
 <nav id="nav">
   <button data-p="shelf" class="on"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 4v11M9 6v9M14 3v12M19 7v8"/><path d="M2 18h20"/></svg></span><span class="tx">Shelf</span></button>
+  <button data-p="rack"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.4"/></svg></span><span class="tx">Racks</span></button>
   <button data-p="log"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 5h16M4 12h16M4 19h10"/></svg></span><span class="tx">Log</span></button>
   <button data-p="find"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></span><span class="tx">Find</span></button>
   <button data-p="disc"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3l2.2 5.9L20 11l-5.8 2.1L12 19l-2.2-5.9L4 11l5.8-2.1z"/></svg></span><span class="tx">Discover</span></button>
@@ -496,12 +566,14 @@ let shelf     = DB.get('shelf', []);     // listen later
 let plays     = DB.get('plays', []);     // your listening history, built up over time
 let plnames   = DB.get('plnames', {});   // playlist id → name
 let pins      = DB.get('pins', {});      // crate key → ordered entry ids
+let vinyl     = DB.get('vinyl', []);     // records you physically own or want
 let tops      = DB.get('tops', {});      // cached /me/top results
 
 const saveEntries = () => DB.set('entries', entries);
 const saveShelf   = () => DB.set('shelf', shelf);
 const savePlays   = () => DB.set('plays', plays);
 const savePins    = () => DB.set('pins', pins);
+const saveVinyl   = () => DB.set('vinyl', vinyl);
 
 function toast(m){
   const t = $('#toast'); if(!t) return;
@@ -890,7 +962,10 @@ function crates(){
     { k:'week',    t:'Most Played · Week',  kind:'plays', days:7  },
     { k:'month',   t:'Most Played · Month', kind:'plays', days:30 },
     { k:'minart',  t:'Minutes by Artist',   kind:'mins',  by:'artist'   },
-    { k:'minpl',   t:'Minutes by Playlist', kind:'mins',  by:'playlist' }
+    { k:'minpl',   t:'Minutes by Playlist', kind:'mins',  by:'playlist' },
+    { k:'press',   t:'Top 5 Pressings',     kind:'wax'    },
+    { k:'spun',    t:'Most Spun',           kind:'spun'   },
+    { k:'want',    t:'Wantlist',            kind:'want'   }
   ];
   for(const g of gs) list.push({ k:'g:'+g, t:g, kind:'rated', ent:'song',
                                  f:e=>e.genre===g, genre:g });
@@ -902,6 +977,9 @@ function crateCount(c){
   if(c.kind === 'later') return shelf.length;
   if(c.kind === 'plays') return playRank(c.days,'song').length;
   if(c.kind === 'mins')  return minsBy(c.by).length;
+  if(c.kind === 'wax')   return (pins[c.k] || []).filter(id => vinyl.some(v => v.id === id)).length;
+  if(c.kind === 'spun')  return owned().filter(v => spinCount(v)).length;
+  if(c.kind === 'want')  return wanted().length;
   return 0;
 }
 
@@ -917,17 +995,34 @@ const PAINT = [
   { hi:'#7A9CEC', mid:'#3F63C9', lo:'#1F3472' },   // cobalt
   { hi:'#6FE0A6', mid:'#2FAE72', lo:'#13603C' },   // mint
   { hi:'#B287EC', mid:'#8151C9', lo:'#432770' },   // violet
-  { hi:'#EC7B6B', mid:'#BE4334', lo:'#6C231A' }    // brick
+  { hi:'#EC7B6B', mid:'#BE4334', lo:'#6C231A' },   // brick
+  { hi:'#5BC8E8', mid:'#2694BC', lo:'#0E5170' },   // sky
+  { hi:'#E8A0D8', mid:'#C46BAF', lo:'#6E3260' },   // orchid
+  { hi:'#D9A05B', mid:'#B07830', lo:'#68441A' }    // amber
 ];
-const FIXED = { songs:0, albums:1, artists:2, later:3, week:4, month:5, minart:6, minpl:7 };
+const FIXED = { songs:0, albums:1, artists:2, later:3, week:4, month:5,
+                minart:6, minpl:7, press:8, spun:9, want:10 };
+/* Genres draw from their own set, so a genre crate can never turn up
+   wearing the same paint as one of the fixed ones. */
+const GENRE_PAINT = [
+  { hi:'#8FA5F2', mid:'#5A72D4', lo:'#2C3C82' },
+  { hi:'#63C98A', mid:'#37A05F', lo:'#175E34' },
+  { hi:'#F09174', mid:'#CE6244', lo:'#7A3021' },
+  { hi:'#C58BE0', mid:'#9A57BE', lo:'#552C70' },
+  { hi:'#DFC07E', mid:'#B99348', lo:'#6E5321' },
+  { hi:'#5FBFD6', mid:'#2C8FA8', lo:'#0F4F60' },
+  { hi:'#E37A94', mid:'#BF4A68', lo:'#71223A' },
+  { hi:'#9CC96B', mid:'#6D9C3A', lo:'#3B5A17' }
+];
 function hash32(k){
   let h = 2166136261;
   for(let i=0;i<k.length;i++) h = Math.imul(h ^ k.charCodeAt(i), 16777619) >>> 0;
   return h;
 }
 function paint(k){
-  const i = FIXED[k] !== undefined ? FIXED[k] : hash32(k) % PAINT.length;
-  const p = PAINT[i];
+  const p = FIXED[k] !== undefined
+    ? PAINT[FIXED[k]]
+    : GENRE_PAINT[hash32(k) % GENRE_PAINT.length];
   return `--hi:${p.hi};--mid:${p.mid};--lo:${p.lo}`;
 }
 function peek(k, filled){
@@ -1045,6 +1140,57 @@ function openCrate(k){
             <span class="art">${a.n ? a.n+' plays' : ''}</span></span></div>`).join('');
     }
 
+  } else if(c.kind === 'wax'){
+    const ids = pins[k] || [];
+    const chosen = ids.map(id => vinyl.find(v => v.id === id)).filter(Boolean);
+    if(editing === k){
+      body = `<div id="pinlist"></div>
+        <div class="flabel" style="margin-top:20px"><span>Add</span><span id="slots"></span></div>
+        <input class="finput" id="candq" placeholder="Filter your racks"
+               autocomplete="off" autocorrect="off" spellcheck="false">
+        <div id="candlist"></div>`;
+      foot = `<div class="row stick">
+        <button class="btn p" data-editdone="1">Done</button>
+        <button class="btn d" id="clearcrate">Clear</button></div>`;
+    } else if(!chosen.length){
+      body = `<div class="empty"><b>Empty crate</b>
+        The five pressings you'd grab first. Add records to your racks, then pick.</div>`;
+      foot = vinyl.length
+        ? `<div class="row"><button class="btn p" data-edit="${esc(k)}">Choose five</button></div>`
+        : '';
+    } else {
+      body = chosen.map((v,i) => `<div class="rec t-album">
+        <span class="rank">${i+1}</span>${sleeve(v)}
+        <span class="m"><b>${esc(v.name)}</b><i>${esc(v.artist)}</i>
+          <span class="tags">${v.format?`<span class="tag fmt">${esc(v.format)}</span>`:''}
+          ${v.media?`<span class="tag gr">${esc(v.media)}</span>`:''}</span></span></div>`).join('');
+      foot = `<div class="row"><button class="btn s" data-edit="${esc(k)}">Edit</button></div>`;
+    }
+
+  } else if(c.kind === 'spun'){
+    const rows = owned().filter(v => spinCount(v))
+      .sort((a,b) => spinCount(b) - spinCount(a)).slice(0,25);
+    body = rows.length
+      ? rows.map((v,i) => `<button class="rec t-album" data-rec="${esc(v.id)}">
+          <span class="rank">${i+1}</span>${sleeve(v)}
+          <span class="m"><b>${esc(v.name)}</b><i>${esc(v.artist)}</i>
+            <span class="tags"><span class="tag sp">${spinCount(v)} spin${spinCount(v)>1?'s':''}</span>
+            ${v.spins.length?`<span class="tag">last ${esc(label(v.spins[v.spins.length-1]).toLowerCase())}</span>`:''}
+            </span></span></button>`).join('')
+      : `<div class="empty"><b>Nothing spun yet</b>
+          Open a record in the racks and hit Spin each time you play it.</div>`;
+
+  } else if(c.kind === 'want'){
+    const rows = wanted();
+    body = rows.length
+      ? rows.map(v => `<button class="rec t-album" data-rec="${esc(v.id)}">
+          ${sleeve(v)}
+          <span class="m"><b>${esc(v.name)}</b><i>${esc(v.artist)}</i>
+            <span class="tags">${v.format?`<span class="tag fmt">${esc(v.format)}</span>`:''}
+            ${v.price?`<span class="tag">up to $${esc(v.price)}</span>`:''}</span></span></button>`).join('')
+      : `<div class="empty"><b>Nothing on the wantlist</b>
+          Add a record in the racks and mark it as one you're hunting for.</div>`;
+
   } else if(c.kind === 'mins'){
     const rows = minsBy(c.by);
     if(!rows.length){
@@ -1067,17 +1213,22 @@ function openCrate(k){
     <p class="sheetsub">${
       c.kind === 'rated' ? `${(pins[k]||[]).length} of 5 chosen`
       : c.kind === 'plays' ? `Counted over the last ${c.days} days`
-      : c.kind === 'mins' ? 'All time' : `${shelf.length} waiting` }</p>
+      : c.kind === 'mins' ? 'All time'
+      : c.kind === 'wax'  ? `${(pins[k]||[]).length} of 5 chosen`
+      : c.kind === 'spun' ? 'Your own turntable, not Spotify'
+      : c.kind === 'want' ? `${wanted().length} on the hunt`
+      : `${shelf.length} waiting` }</p>
     ${body}${foot}`;
   $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
   $('#sheet').scrollTop = 0;
   $('#sheet').dataset.openk = k;
 
-  if(c.kind === 'rated' && editing === k){
+  if((c.kind === 'rated' || c.kind === 'wax') && editing === k){
     const q = $('#candq');
     q.value = editQ;
     q.oninput = () => {
-      editQ = q.value; renderCands(k, c.f);
+      editQ = q.value; renderCands(k, c.f, c.kind);
+      if(c.kind === 'wax') return;      // a pressing has to be one you actually have
       clearTimeout(catTmr);
       const term = editQ.trim();
       if(term.length < 3){ catHits = []; $('#catlist').innerHTML = ''; return }
@@ -1090,18 +1241,30 @@ function openCrate(k){
     cl.onclick = () => {
       if(!armed){ armed = true; cl.textContent = 'Sure?';
         setTimeout(() => { armed = false; cl.textContent = 'Clear' }, 3000); return }
-      delete pins[k]; savePins(); drawShelf(); refreshEdit(k, c.f);
+      delete pins[k]; savePins(); drawShelf(); refreshEdit(k, c.f, c.kind);
       toast('Crate emptied');
     };
-    refreshEdit(k, c.f);
+    refreshEdit(k, c.f, c.kind);
   }
 }
 
 /* Edit mode updates in place so the filter box keeps focus as you type. */
-function refreshEdit(k, f){
+function refreshEdit(k, f, kind){
   const arr = pins[k] || [];
   const pl = $('#pinlist'); if(!pl) return;
+  const wax = kind === 'wax';
   pl.innerHTML = arr.length ? arr.map((id,i) => {
+    if(wax){
+      const v = vinyl.find(x => x.id === id); if(!v) return '';
+      return `<div class="rec t-album">
+        <span class="rank">${i+1}</span>${sleeve(v)}
+        <span class="m"><b>${esc(v.name)}</b><i>${esc(v.artist)}</i></span>
+        <span class="editrow">
+          <button class="ebtn" data-mv="up:${i}" aria-label="Move up">↑</button>
+          <button class="ebtn" data-mv="dn:${i}" aria-label="Move down">↓</button>
+          <button class="ebtn" data-mv="rm:${i}" aria-label="Remove">✕</button>
+        </span></div>`;
+    }
     const e = entries.find(x => x.id === id); if(!e) return '';
     return `<div class="spine t-${e.type} pinned">
       <span class="rank">${i+1}</span>${tile(e,'lab')}
@@ -1118,7 +1281,7 @@ function refreshEdit(k, f){
   if(s) s.textContent = arr.length >= 5 ? 'Full' : `${5-arr.length} free`;
   const sub = document.querySelector('.sheetsub');
   if(sub) sub.textContent = `${arr.length} of 5 chosen`;
-  renderCands(k, f);
+  renderCands(k, f, kind);
 }
 
 /* You shouldn't have to rate something before you can call it a favourite.
@@ -1164,9 +1327,29 @@ function renderCat(k){
       </span></div>`).join('');
 }
 
-function renderCands(k, f){
+function renderCands(k, f, kind){
   const el = $('#candlist'); if(!el) return;
   const full = (pins[k] || []).length >= 5;
+
+  if(kind === 'wax'){
+    const have = new Set(pins[k] || []);
+    const q = editQ.trim().toLowerCase();
+    const list = vinyl.filter(v => !have.has(v.id))
+      .filter(v => !q || (v.name + ' ' + v.artist).toLowerCase().includes(q))
+      .sort((a,b) => b.created - a.created).slice(0,60);
+    el.innerHTML = list.length
+      ? list.map(v => `<div class="rec t-album">${sleeve(v)}
+          <span class="m"><b>${esc(v.name)}</b><i>${esc(v.artist)}</i></span>
+          <span class="editrow">
+            <button class="ebtn${full?'':' on'}" data-mv="ad:${esc(v.id)}"
+              ${full?'disabled':''} aria-label="Add">+</button>
+          </span></div>`).join('')
+      : `<div class="empty" style="padding:18px 4px">${
+          editQ ? 'Nothing in your racks matches that.'
+                : 'Nothing left to add — put more records in the racks.'}</div>`;
+    return;
+  }
+
   const list = candidates(k, f, editQ);
   if(!list.length){
     el.innerHTML = `<div class="empty" style="padding:18px 4px">${
@@ -1184,7 +1367,266 @@ function renderCands(k, f){
     </span></div>`).join('');
 }
 
-/* ══ rating something ══════════════════════════════════════════ */
+/* ══ the racks ═════════════════════════════════════════════════
+   A record you own is a different object from a rating: it has a
+   pressing, a condition, a price, and a play count that wears the
+   stylus. Kept in its own store so neither muddies the other.
+   ══════════════════════════════════════════════════════════════ */
+const GRADES  = ['M','NM','VG+','VG','G+','G','F','P'];
+const GRADEFULL = { M:'Mint', NM:'Near Mint', 'VG+':'Very Good Plus', VG:'Very Good',
+                    'G+':'Good Plus', G:'Good', F:'Fair', P:'Poor' };
+const FORMATS = ['LP','2×LP','3×LP','12"','10"','7"','Box'];
+
+let rackTab = 'own';
+
+const owned  = () => vinyl.filter(v => !v.want);
+const wanted = () => vinyl.filter(v => v.want);
+const spinCount = v => (v.spins || []).length;
+const totalSpins = () => vinyl.reduce((n,v) => n + spinCount(v), 0);
+const totalSpent = () => vinyl.reduce((n,v) => n + (+v.price || 0), 0);
+
+function sleeve(v){
+  return `<span class="sleeve${v.want?' want':''}">
+    ${v.art ? `<img class="cov" src="${esc(v.art)}" alt="" loading="lazy">`
+            : `<span class="cov mono" style="display:flex;align-items:center;justify-content:center;font-size:22px">${esc(initial(v.name))}</span>`}
+    <span class="disc"></span></span>`;
+}
+
+function recRow(v){
+  const sp = spinCount(v);
+  return `<button class="rec t-album" data-rec="${esc(v.id)}">
+    ${sleeve(v)}
+    <span class="m">
+      <b>${esc(v.name)}</b><i>${esc(v.artist)}</i>
+      <span class="tags">
+        ${v.format ? `<span class="tag fmt">${esc(v.format)}</span>` : ''}
+        ${v.media  ? `<span class="tag gr">${esc(v.media)}${v.sleeveG?'/'+esc(v.sleeveG):''}</span>` : ''}
+        ${v.pressing ? `<span class="tag">${esc(v.pressing)}</span>` : ''}
+        ${sp ? `<span class="tag sp">${sp} spin${sp>1?'s':''}</span>` : ''}
+      </span>
+    </span></button>`;
+}
+
+function drawRack(){
+  const own = owned(), want = wanted();
+  const sp = totalSpins(), spent = totalSpent();
+  $('#rackstats').innerHTML = `
+    <div class="eyebrow">The racks</div>
+    <div class="split">
+      <div class="bigstat" style="--ac:#F0854A"><div class="n">${own.length}</div>
+        <div class="k">Records owned</div></div>
+      <div class="bigstat" style="--ac:#F3C551"><div class="n">${sp}</div>
+        <div class="k">Total spins</div></div>
+    </div>
+    ${spent ? `<div class="bigstat" style="--ac:#3FC7C4" >
+      <div class="n">$${spent.toFixed(0)}<small>spent</small></div>
+      <div class="k">Across ${own.filter(v=>+v.price).length} record${own.filter(v=>+v.price).length===1?'':'s'}</div></div>` : ''}`;
+
+  const list = rackTab === 'own' ? own : want;
+  const el = $('#racklist');
+  if(!list.length){
+    el.innerHTML = rackTab === 'own'
+      ? `<div class="empty"><b>Nothing in the racks</b>
+          Add the records you actually own — pressing, condition, what you paid.
+          Then hit Spin each time you play one.</div>`
+      : `<div class="empty"><b>Wantlist is empty</b>
+          Records you're hunting for go here. Add one and mark it as wanted.</div>`;
+    return;
+  }
+  const sorted = [...list].sort((a,b) =>
+    rackTab === 'own' ? (spinCount(b) - spinCount(a) || b.created - a.created)
+                      : b.created - a.created);
+  el.innerHTML = sorted.map(recRow).join('');
+}
+
+$('#addrec').onclick = () => openAdd();
+
+$('#rseg').onclick = e => {
+  const b = e.target.closest('button'); if(!b) return;
+  rackTab = b.dataset.r;
+  document.querySelectorAll('#rseg button').forEach(x => x.classList.toggle('on', x === b));
+  drawRack();
+};
+
+/* ── adding a record ────────────────────────────────────────── */
+let recQ = '', recHits = [], recTmr;
+
+function openAdd(){
+  recQ = ''; recHits = [];
+  $('#sheet').innerHTML = `<div class="grab"></div>
+    <h2 class="sheettitle">Add a record</h2>
+    <p class="sheetsub">Search the catalogue, or type it in yourself</p>
+    <input class="finput" id="recq" placeholder="Album or artist"
+           autocomplete="off" autocorrect="off" spellcheck="false">
+    <div id="reclist"></div>
+    <div class="row"><button class="btn s" data-recmanual="1">Enter it manually</button></div>`;
+  $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
+  $('#sheet').scrollTop = 0; delete $('#sheet').dataset.openk;
+  const q = $('#recq');
+  q.oninput = () => {
+    recQ = q.value; clearTimeout(recTmr);
+    const t = recQ.trim();
+    if(t.length < 3){ recHits = []; $('#reclist').innerHTML = ''; return }
+    $('#reclist').innerHTML = `<div class="empty" style="padding:16px 4px"><span class="spin"></span></div>`;
+    recTmr = setTimeout(() => findRec(t), 550);
+  };
+  setTimeout(() => q.focus(), 120);
+}
+
+async function findRec(term){
+  const el = $('#reclist'); if(!el) return;
+  let raw;
+  try{ raw = await searchIT(term, 'album', 25) }
+  catch(e){
+    el.innerHTML = `<div class="empty" style="padding:16px 4px">${esc(catMsg(e))}</div>`;
+    return;
+  }
+  if($('#recq')?.value.trim() !== term) return;
+  recHits = raw.map(fromIT).filter(r => r.name && r.artist).slice(0,15);
+  el.innerHTML = recHits.length
+    ? recHits.map((r,i) => `<div class="res t-album">${tile(r)}
+        <div class="m"><b>${esc(r.name)}</b><i>${esc(r.artist)}</i>
+          <em>${esc(r.genre)}${r.year?' · '+esc(r.year):''}</em></div>
+        <div class="acts"><button class="mini go" data-recpick="${i}">Pick</button></div>
+      </div>`).join('')
+    : `<div class="empty" style="padding:16px 4px">Nothing found. Plenty of pressings
+        aren't in the catalogue — enter it manually below.</div>`;
+}
+
+/* ── the record sheet ───────────────────────────────────────── */
+let rec = null;
+
+function openRec(v, isNew){
+  rec = v ? { ...v, spins:[...(v.spins||[])] }
+          : { id:'v'+Date.now()+randStr(4), name:'', artist:'', art:'', year:'', genre:'Unfiled',
+              format:'LP', variant:'', label:'', catno:'', pressing:'', media:'', sleeveG:'',
+              price:'', acquired:'', where:'', want:false, notes:'', spins:[], created:Date.now() };
+  const sp = rec.spins.length;
+  const last = sp ? rec.spins[rec.spins.length-1] : null;
+  $('#sheet').innerHTML = `<div class="grab"></div>
+    <div class="shead t-album">
+      ${rec.art ? `<img src="${esc(rec.art)}" alt="">`
+                : `<span class="mono">${esc(initial(rec.name||'?'))}</span>`}
+      <div>
+        <h2>${esc(rec.name) || 'New record'}</h2>
+        <p>${esc(rec.artist)}</p>
+        ${rec.year ? `<em>Released ${esc(rec.year)}</em>` : ''}
+      </div>
+    </div>
+
+    ${isNew ? '' : `<div class="spins">
+      <span class="cnt">${sp}</span>
+      <span class="lb">${sp ? `spin${sp>1?'s':''}${last?' · last '+label(last).toLowerCase():''}`
+                            : 'never spun'}</span>
+      ${sp ? '<button class="unspin" data-unspin="1" aria-label="Remove a spin">−</button>' : ''}
+      <button class="spinbtn" data-spin="1">Spin</button>
+    </div>`}
+
+    <div class="field">
+      <div class="flabel"><span>Title</span></div>
+      <input class="tin" id="rname" value="${esc(rec.name)}" placeholder="Album title">
+    </div>
+    <div class="field">
+      <div class="flabel"><span>Artist</span></div>
+      <input class="tin" id="rartist" value="${esc(rec.artist)}" placeholder="Artist">
+    </div>
+
+    <div class="field">
+      <div class="flabel"><span>Format</span></div>
+      <div class="chips" id="rfmt">${FORMATS.map(f =>
+        `<button class="chip${rec.format===f?' on':''}" data-fmt="${esc(f)}">${esc(f)}</button>`).join('')}</div>
+    </div>
+
+    <div class="field">
+      <div class="flabel"><span>Media grade</span><span>${
+        rec.media ? esc(GRADEFULL[rec.media]) : 'Goldmine scale'}</span></div>
+      <div class="chips" id="rmedia">${GRADES.map(g =>
+        `<button class="chip${rec.media===g?' on':''}" data-media="${esc(g)}">${esc(g)}</button>`).join('')}</div>
+    </div>
+    <div class="field">
+      <div class="flabel"><span>Sleeve grade</span><span>${
+        rec.sleeveG ? esc(GRADEFULL[rec.sleeveG]) : ''}</span></div>
+      <div class="chips" id="rsleeve">${GRADES.map(g =>
+        `<button class="chip${rec.sleeveG===g?' on':''}" data-sleeve="${esc(g)}">${esc(g)}</button>`).join('')}</div>
+    </div>
+
+    <div class="field two">
+      <div><div class="flabel"><span>Label</span></div>
+        <input class="tin" id="rlabel" value="${esc(rec.label)}" placeholder="Blue Note"></div>
+      <div><div class="flabel"><span>Cat. no.</span></div>
+        <input class="tin" id="rcatno" value="${esc(rec.catno)}" placeholder="BST 84003"></div>
+    </div>
+    <div class="field two">
+      <div><div class="flabel"><span>Pressing</span></div>
+        <input class="tin" id="rpress" value="${esc(rec.pressing)}" inputmode="numeric" placeholder="1959"></div>
+      <div><div class="flabel"><span>Paid</span></div>
+        <input class="tin" id="rprice" value="${esc(rec.price)}" inputmode="decimal" placeholder="24.00"></div>
+    </div>
+    <div class="field">
+      <div class="flabel"><span>Variant</span></div>
+      <input class="tin" id="rvar" value="${esc(rec.variant)}" placeholder="Clear vinyl, 180g, gatefold…">
+    </div>
+    <div class="field two">
+      <div><div class="flabel"><span>Picked up</span></div>
+        <input class="tin" id="racq" type="date" value="${esc(rec.acquired)}" max="${today()}"></div>
+      <div><div class="flabel"><span>Where</span></div>
+        <input class="tin" id="rwhere" value="${esc(rec.where)}" placeholder="Park Ave CDs"></div>
+    </div>
+    <div class="field">
+      <div class="flabel"><span>Notes</span></div>
+      <textarea id="note" placeholder="Ring wear, a little surface noise on side B…">${esc(rec.notes)}</textarea>
+    </div>
+    <div class="field">
+      <div class="flabel"><span>Status</span></div>
+      <div class="chips" id="rwant">
+        <button class="chip${rec.want?'':' on'}" data-want="0">I own this</button>
+        <button class="chip${rec.want?' on':''}" data-want="1">On my wantlist</button>
+      </div>
+    </div>
+
+    <div class="row stick">
+      <button class="btn p" data-recsave="1">${isNew ? 'Add to racks' : 'Save'}</button>
+      ${isNew ? '' : '<button class="btn d" id="recdel">Delete</button>'}
+    </div>`;
+  $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
+  $('#sheet').scrollTop = 0; delete $('#sheet').dataset.openk;
+
+  if(!isNew){
+    let armed = false; const del = $('#recdel');
+    del.onclick = () => {
+      if(!armed){ armed = true; del.textContent = 'Sure?';
+        setTimeout(() => { armed = false; del.textContent = 'Delete' }, 3000); return }
+      vinyl = vinyl.filter(x => x.id !== rec.id);
+      for(const k in pins) pins[k] = pins[k].filter(id => id !== rec.id);
+      saveVinyl(); savePins(); drawRack(); drawShelf(); closeSheet(); toast('Removed');
+    };
+  }
+}
+
+function readRec(){
+  if(!rec) return;
+  rec.name     = $('#rname').value.trim();
+  rec.artist   = $('#rartist').value.trim();
+  rec.label    = $('#rlabel').value.trim();
+  rec.catno    = $('#rcatno').value.trim();
+  rec.pressing = $('#rpress').value.trim();
+  rec.price    = $('#rprice').value.trim();
+  rec.variant  = $('#rvar').value.trim();
+  rec.acquired = $('#racq').value;
+  rec.where    = $('#rwhere').value.trim();
+  rec.notes    = $('#note').value.trim();
+}
+
+function saveRec(){
+  readRec();
+  if(!rec.name || !rec.artist){ toast('Needs a title and an artist'); return }
+  const i = vinyl.findIndex(v => v.id === rec.id);
+  if(i >= 0) vinyl[i] = rec; else vinyl.unshift(rec);
+  saveVinyl(); drawRack(); drawShelf(); closeSheet();
+  toast(i >= 0 ? 'Saved' : 'In the racks');
+}
+
+
 let draft = null;
 function openSheet(rec, existing){
   draft = existing ? { ...existing }
@@ -1391,10 +1833,46 @@ function addLater(r){
 document.body.addEventListener('click', e => {
   const t = e.target.closest('[data-id],[data-log],[data-later],[data-rail],[data-crate],'+
     '[data-shelf-log],[data-shelf-rm],[data-edit],[data-editdone],[data-editreset],[data-mv],'+
-    '[data-dlog],[data-dlater],[data-catretry]');
+    '[data-dlog],[data-dlater],[data-catretry],[data-rec],[data-recpick],[data-recmanual],'+
+    '[data-recsave],[data-spin],[data-unspin],[data-fmt],[data-media],[data-sleeve],[data-want]');
   if(!t) return;
   const d = t.dataset;
 
+  if(d.rec){ const v = vinyl.find(x => x.id === d.rec); if(v) openRec(v, false); return }
+  if(d.recpick !== undefined){
+    const r = recHits[+d.recpick]; if(!r) return;
+    openRec({ id:'v'+Date.now()+randStr(4), name:r.name, artist:r.artist, art:r.art,
+      year:r.year, genre:r.genre, format:'LP', variant:'', label:'', catno:'',
+      pressing:r.year, media:'', sleeveG:'', price:'', acquired:today(), where:'',
+      want:false, notes:'', spins:[], created:Date.now() }, true);
+    return;
+  }
+  if(d.recmanual){ openRec(null, true); return }
+  if(d.recsave){ saveRec(); return }
+  if(d.spin){
+    readRec(); rec.spins.push(today());
+    const i = vinyl.findIndex(v => v.id === rec.id);
+    if(i >= 0){ vinyl[i] = { ...rec }; saveVinyl(); drawRack(); drawShelf() }
+    openRec(rec, false); toast('Spun');
+    return;
+  }
+  if(d.unspin){
+    readRec(); rec.spins.pop();
+    const i = vinyl.findIndex(v => v.id === rec.id);
+    if(i >= 0){ vinyl[i] = { ...rec }; saveVinyl(); drawRack(); drawShelf() }
+    openRec(rec, false);
+    return;
+  }
+  if(d.fmt !== undefined){ rec.format = d.fmt;
+    document.querySelectorAll('#rfmt .chip').forEach(x => x.classList.toggle('on', x === t)); return }
+  if(d.media !== undefined){ rec.media = rec.media === d.media ? '' : d.media;
+    document.querySelectorAll('#rmedia .chip').forEach(x =>
+      x.classList.toggle('on', x === t && rec.media)); return }
+  if(d.sleeve !== undefined){ rec.sleeveG = rec.sleeveG === d.sleeve ? '' : d.sleeve;
+    document.querySelectorAll('#rsleeve .chip').forEach(x =>
+      x.classList.toggle('on', x === t && rec.sleeveG)); return }
+  if(d.want !== undefined){ rec.want = d.want === '1';
+    document.querySelectorAll('#rwant .chip').forEach(x => x.classList.toggle('on', x === t)); return }
   if(d.catretry){
     const k = $('#sheet').dataset.openk;
     const c = crates().find(x => x.k === k);
@@ -1459,7 +1937,7 @@ document.body.addEventListener('click', e => {
       drawDiary();
       toast('Added — rate it whenever');
     }
-    pins[k] = arr; savePins(); drawShelf(); refreshEdit(k, c.f); renderCat(k);
+    pins[k] = arr; savePins(); drawShelf(); drawRack(); refreshEdit(k, c.f, c.kind); renderCat(k);
   }
 });
 
@@ -1490,6 +1968,7 @@ function go(p){
   window.scrollTo(0,0);
   if(p === 'find')  setTimeout(() => $('#q').focus(), 90);
   if(p === 'shelf') drawShelf();
+  if(p === 'rack')  drawRack();
   if(p === 'disc' && !$('#dout').innerHTML){ fillPicker(); discover() }
 }
 $('#nav').onclick = e => { const b = e.target.closest('button'); if(b) go(b.dataset.p) };
@@ -1536,7 +2015,7 @@ $('#syncnow').onclick = async () => {
 
 $('#exp').onclick = () => {
   const blob = new Blob([JSON.stringify(
-    { v:2, clientId:CLIENT_ID, entries, shelf, plays, plnames, pins }, null, 2)],
+    { v:3, clientId:CLIENT_ID, entries, shelf, plays, plnames, pins, vinyl }, null, 2)],
     { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1563,9 +2042,14 @@ $('#fileimp').onchange = ev => {
       }
       if(d.plnames) plnames = { ...d.plnames, ...plnames };
       if(d.pins)    pins    = { ...d.pins, ...pins };
+      if(Array.isArray(d.vinyl)){
+        const hv = new Set(vinyl.map(v => v.id));
+        vinyl = [...vinyl, ...d.vinyl.filter(v => !hv.has(v.id))];
+      }
       if(d.clientId && !CLIENT_ID){ CLIENT_ID = d.clientId; DB.set('clientId', d.clientId) }
-      saveEntries(); saveShelf(); savePlays(); savePins(); DB.set('plnames', plnames);
-      rebuildLogged(); drawDiary(); drawShelf(); drawRail(); drawSettings();
+      saveEntries(); saveShelf(); savePlays(); savePins(); saveVinyl();
+      DB.set('plnames', plnames);
+      rebuildLogged(); drawDiary(); drawShelf(); drawRack(); drawRail(); drawSettings();
       toast(`Imported ${d.entries.length}`);
     }catch{ toast("That file isn't a Crateside export") }
   };
@@ -1576,7 +2060,7 @@ $('#fileimp').onchange = ev => {
 (async () => {
   await handleCallback();
   rebuildLogged();
-  drawDiary(); drawShelf(); drawRail(); drawSettings();
+  drawDiary(); drawShelf(); drawRack(); drawRail(); drawSettings();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
   if(DB.get('tok', null)){
     await syncPlays(false);
