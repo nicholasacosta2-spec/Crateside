@@ -218,6 +218,13 @@ main{padding:0 18px 120px;max-width:640px;margin:0 auto}
 .note{font-size:12.5px;color:var(--dim);line-height:1.55}
 .note code{font-family:var(--mono);font-size:11px;color:var(--brass);
   background:var(--base);padding:2px 5px;border-radius:2px;word-break:break-all}
+#cid{
+  width:100%;background:var(--base);border:1px solid var(--line);border-radius:3px;
+  padding:12px;font-family:var(--mono);font-size:14px;margin-top:12px;letter-spacing:.02em;
+}
+#cid:focus{border-color:var(--brass)}
+#cid::placeholder{color:var(--dim);letter-spacing:.08em}
+#cidhelp{margin:8px 0 0}
 .set{border-bottom:1px solid var(--line);padding:15px 0}
 .set:last-child{border:0}
 .set h3{font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.06em;
@@ -282,7 +289,13 @@ main{padding:0 18px 120px;max-width:640px;margin:0 auto}
     <div class="set">
       <h3>Spotify</h3>
       <div id="spstate" class="note"></div>
-      <div class="row"><button class="btn s" id="spbtn">Connect</button></div>
+      <input id="cid" placeholder="Client ID" autocomplete="off" autocorrect="off"
+             autocapitalize="off" spellcheck="false">
+      <p class="note" id="cidhelp">From your app's page on developer.spotify.com — 32 characters, letters and numbers.</p>
+      <div class="row">
+        <button class="btn s" id="cidsave">Save ID</button>
+        <button class="btn s" id="spbtn">Connect</button>
+      </div>
     </div>
 
     <div class="set">
@@ -315,10 +328,10 @@ main{padding:0 18px 120px;max-width:640px;margin:0 auto}
 
 <script>
 /* ══════════════════════════════════════════════════════════════
-   CONFIG — the only thing you need to edit
+   Nothing to edit here. Enter your Spotify Client ID once under
+   the gear icon — it's stored on this device. It isn't a secret;
+   a browser app has no way to hide one, which is why PKCE exists.
    ══════════════════════════════════════════════════════════════ */
-const CLIENT_ID = '';   // ← paste your Spotify Client ID here
-
 const SCOPES = 'user-read-recently-played user-read-currently-playing';
 const REDIRECT = location.origin + location.pathname;
 const $ = s => document.querySelector(s);
@@ -329,6 +342,7 @@ const DB = {
   set(k, v){ localStorage.setItem('ck.'+k, JSON.stringify(v)) },
   del(k){ localStorage.removeItem('ck.'+k) }
 };
+let CLIENT_ID = DB.get('clientId', '');
 let entries = DB.get('entries', []);
 let shelf   = DB.get('shelf', []);
 const save  = () => { DB.set('entries', entries); DB.set('shelf', shelf) };
@@ -353,7 +367,7 @@ async function challenge(v){
 }
 
 async function spotifyLogin(){
-  if(!CLIENT_ID){ toast('Add your Client ID first'); return }
+  if(!CLIENT_ID){ toast('Enter your Client ID first'); return }
   const v = randStr(64);
   const state = randStr(16);
   sessionStorage.setItem('ck.v', v);
@@ -727,8 +741,9 @@ $('#gear').onclick = () => {
 function drawSettings(){
   $('#ruri').textContent = REDIRECT;
   const on = !!DB.get('tok', null);
+  $('#cid').value = CLIENT_ID;
   $('#spstate').innerHTML = !CLIENT_ID
-    ? '<span class="dot"></span>No Client ID yet. Open this file and paste yours into the CONFIG block at the top.'
+    ? '<span class="dot"></span>Enter your Client ID below, then connect.'
     : on ? '<span class="dot live"></span>Connected. Your recent plays show up on the Log tab.'
          : '<span class="dot"></span>Not connected. Connecting adds a one-tap row of what you just played.';
   $('#spbtn').textContent = on ? 'Disconnect' : 'Connect';
@@ -737,8 +752,21 @@ function drawSettings(){
     : spotifyLogin;
 }
 
+$('#cidsave').onclick = () => {
+  const v = $('#cid').value.trim();
+  if(v && !/^[a-zA-Z0-9]{20,}$/.test(v)){
+    toast("That doesn't look like a Client ID"); return;
+  }
+  CLIENT_ID = v;
+  if(v) DB.set('clientId', v); else DB.del('clientId');
+  DB.del('tok');                       // a different app means the old token is void
+  drawSettings();
+  toast(v ? 'Saved — now tap Connect' : 'Client ID cleared');
+};
+
 $('#exp').onclick = () => {
-  const blob = new Blob([JSON.stringify({v:1, entries, shelf}, null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify({v:1, clientId:CLIENT_ID, entries, shelf}, null, 2)],
+    {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `crateside-${today()}.json`;
@@ -758,7 +786,8 @@ $('#fileimp').onchange = ev => {
         const hs = new Set(shelf.map(s => s.k));
         shelf = [...shelf, ...d.shelf.filter(s => !hs.has(s.k))];
       }
-      save(); drawDiary(); drawShelf();
+      if(d.clientId && !CLIENT_ID){ CLIENT_ID = d.clientId; DB.set('clientId', d.clientId) }
+      save(); drawDiary(); drawShelf(); drawSettings();
       toast(`Imported ${d.entries.length}`);
     }catch{ toast("That file isn't a Crateside export") }
   };
