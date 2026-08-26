@@ -751,7 +751,7 @@ function spine(e, opts={}){
       <span class="art">${e.type==='artist' ? esc(e.genre) : esc(e.artist)}</span>
     </span>
     <span class="side">
-      ${notches(e.rating)}
+      ${e.rating ? notches(e.rating) : '<span class="when">unrated</span>'}
       <span class="kind">${e.type}</span>
     </span>
   </button>`;
@@ -764,16 +764,25 @@ function drawDiary(){
       Rate an album, a song, or an artist. Once a few are in, your crates fill themselves.</div>`;
     $('#count').textContent = ''; return;
   }
-  const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
+  // Anything pulled straight into a crate has no date yet — those sit up top,
+  // where they're easy to find and rate.
+  const un = entries.filter(e => !e.date).sort((a,b) => b.created - a.created);
+  const dated = entries.filter(e => e.date)
+    .sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
   let out = '', last = '';
-  for(const e of sorted){
+  if(un.length){
+    out += `<div class="daymark">Not rated yet</div>` + un.map(e => spine(e)).join('');
+  }
+  for(const e of dated){
     if(e.date !== last){ out += `<div class="daymark">${label(e.date)}</div>`; last = e.date }
     out += spine(e);
   }
   el.innerHTML = out;
   const yr = String(new Date().getFullYear());
-  $('#count').textContent =
-    `${entries.length} rated · ${entries.filter(e=>e.date.startsWith(yr)).length} this year`;
+  const nRated = entries.filter(e => e.rating).length;
+  $('#count').textContent = `${nRated} rated · ${
+    entries.filter(e => e.date.startsWith(yr) && e.rating).length} this year`
+    + (un.length ? ` · ${un.length} to rate` : '');
 }
 
 /* ══ crates ════════════════════════════════════════════════════
@@ -830,16 +839,17 @@ function crates(){
     .sort((a,b) => entries.filter(e=>e.genre===b).length - entries.filter(e=>e.genre===a).length);
 
   const list = [
-    { k:'songs',   t:'Top 5 Songs',   kind:'rated', f:e=>e.type==='song'   },
-    { k:'albums',  t:'Top 5 Albums',  kind:'rated', f:e=>e.type==='album'  },
-    { k:'artists', t:'Top 5 Artists', kind:'rated', f:e=>e.type==='artist' },
+    { k:'songs',   t:'Top 5 Songs',   kind:'rated', ent:'song',        f:e=>e.type==='song'   },
+    { k:'albums',  t:'Top 5 Albums',  kind:'rated', ent:'album',       f:e=>e.type==='album'  },
+    { k:'artists', t:'Top 5 Artists', kind:'rated', ent:'musicArtist', f:e=>e.type==='artist' },
     { k:'later',   t:'Listen Later',  kind:'later' },
     { k:'week',    t:'Most Played · Week',  kind:'plays', days:7  },
     { k:'month',   t:'Most Played · Month', kind:'plays', days:30 },
     { k:'minart',  t:'Minutes by Artist',   kind:'mins',  by:'artist'   },
     { k:'minpl',   t:'Minutes by Playlist', kind:'mins',  by:'playlist' }
   ];
-  for(const g of gs) list.push({ k:'g:'+g, t:g, kind:'rated', f:e=>e.genre===g, genre:g });
+  for(const g of gs) list.push({ k:'g:'+g, t:g, kind:'rated', ent:'song',
+                                 f:e=>e.genre===g, genre:g });
   return list;
 }
 
@@ -941,9 +951,10 @@ function openCrate(k){
     if(editing === k){
       body = `<div id="pinlist"></div>
         <div class="flabel" style="margin-top:20px"><span>Add</span><span id="slots"></span></div>
-        <input class="finput" id="candq" placeholder="Filter your log"
+        <input class="finput" id="candq" placeholder="Search your log or the catalogue"
                autocomplete="off" autocorrect="off" spellcheck="false">
-        <div id="candlist"></div>`;
+        <div id="candlist"></div>
+        <div id="catlist"></div>`;
       foot = `<div class="row stick">
         <button class="btn p" data-editdone="1">Done</button>
         <button class="btn d" id="clearcrate">Clear</button></div>`;
@@ -1021,7 +1032,16 @@ function openCrate(k){
   if(c.kind === 'rated' && editing === k){
     const q = $('#candq');
     q.value = editQ;
-    q.oninput = () => { editQ = q.value; renderCands(k, c.f) };
+    q.oninput = () => {
+      editQ = q.value; renderCands(k, c.f);
+      clearTimeout(catTmr);
+      const term = editQ.trim();
+      if(term.length < 2){ catHits = []; $('#catlist').innerHTML = ''; return }
+      $('#catlist').innerHTML =
+        `<div class="flabel" style="margin-top:18px"><span>From the catalogue</span>
+          <span class="spin"></span></div>`;
+      catTmr = setTimeout(() => searchCat(k, c, term), 420);
+    };
     let armed = false; const cl = $('#clearcrate');
     cl.onclick = () => {
       if(!armed){ armed = true; cl.textContent = 'Sure?';
@@ -1055,6 +1075,46 @@ function refreshEdit(k, f){
   const sub = document.querySelector('.sheetsub');
   if(sub) sub.textContent = `${arr.length} of 5 chosen`;
   renderCands(k, f);
+}
+
+/* You shouldn't have to rate something before you can call it a favourite.
+   The picker searches your log and the catalogue at once; anything pulled
+   in from the catalogue is filed unrated until you get round to it. */
+let catHits = [], catTmr;
+
+async function searchCat(k, c, term){
+  const el = $('#catlist'); if(!el) return;
+  let raw;
+  try{ raw = await searchIT(term, ENTITY[c.ent] || c.ent, 25) }
+  catch{
+    el.innerHTML = `<div class="flabel" style="margin-top:18px"><span>From the catalogue</span></div>
+      <div class="empty" style="padding:14px 4px">Couldn't reach the catalogue — you may be offline.</div>`;
+    return;
+  }
+  if(editing !== k || $('#candq')?.value.trim() !== term) return;   // moved on already
+  catHits = raw.map(fromIT)
+    .filter(r => r.name && r.artist)
+    .filter(r => !c.genre || r.genre === c.genre)                   // a genre crate stays that genre
+    .filter(r => !logged.has(key(r)))
+    .filter((r,i,a) => a.findIndex(x => key(x) === key(r)) === i)
+    .slice(0,12);
+  renderCat(k);
+}
+
+function renderCat(k){
+  const el = $('#catlist'); if(!el) return;
+  if(!catHits.length){ el.innerHTML = ''; return }
+  const full = (pins[k] || []).length >= 5;
+  el.innerHTML = `<div class="flabel" style="margin-top:18px">
+      <span>From the catalogue</span><span>Not in your log</span></div>` +
+    catHits.map((r,i) => `<div class="spine t-${r.type} slot">
+      ${tile(r,'lab')}
+      <span class="txt"><span class="ttl">${esc(r.name)}</span>
+        <span class="art">${r.type==='artist'?esc(r.genre):esc(r.artist)}</span></span>
+      <span class="editrow">
+        <button class="ebtn${full?'':' on'}" data-mv="new:${i}"
+          ${full?'disabled':''} aria-label="Add">+</button>
+      </span></div>`).join('');
 }
 
 function renderCands(k, f){
@@ -1104,7 +1164,7 @@ function openSheet(rec, existing){
     </div>
     <div class="field">
       <div class="flabel"><span>Heard on</span></div>
-      <input type="date" id="when" value="${draft.date}" max="${today()}">
+      <input type="date" id="when" value="${draft.date || today()}" max="${today()}">
     </div>
     <div class="row">
       <button class="btn p" id="ok">${existing ? 'Save' : 'Log it'}</button>
@@ -1309,10 +1369,11 @@ document.body.addEventListener('click', e => {
     shelf = shelf.filter(s => s.k !== d.shelfRm); saveShelf(); drawShelf(); openCrate('later');
   }
   else if(d.edit){
-    editing = d.edit; editQ = '';
+    editing = d.edit; editQ = ''; catHits = []; clearTimeout(catTmr);
     openCrate(editing);
   }
-  else if(d.editdone){ const k = $('#sheet').dataset.openk; editing = null; openCrate(k) }
+  else if(d.editdone){ const k = $('#sheet').dataset.openk;
+                       editing = null; catHits = []; clearTimeout(catTmr); openCrate(k) }
   else if(d.mv){
     const [op, arg] = d.mv.split(':');
     const k = $('#sheet').dataset.openk;
@@ -1326,7 +1387,17 @@ document.body.addEventListener('click', e => {
       if(arr.length >= 5){ toast('That crate is full — remove one first'); return }
       if(!arr.includes(arg)) arr.push(arg);
     }
-    pins[k] = arr; savePins(); drawShelf(); refreshEdit(k, c.f);
+    else if(op === 'new'){
+      if(arr.length >= 5){ toast('That crate is full — remove one first'); return }
+      const r = catHits[+arg]; if(!r) return;
+      const e = { id:'e'+Date.now()+randStr(4), ...r, rating:0, note:'', date:'', created:Date.now() };
+      entries.unshift(e); saveEntries(); rebuildLogged();
+      arr.push(e.id);
+      catHits.splice(+arg,1);
+      drawDiary();
+      toast('Added — rate it whenever');
+    }
+    pins[k] = arr; savePins(); drawShelf(); refreshEdit(k, c.f); renderCat(k);
   }
 });
 
