@@ -5,27 +5,29 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Crateside</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#141110">
+<meta name="theme-color" content="#131218">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crateside">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;600&family=Karla:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Figtree:ital,wght@0,400;0,500;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════════════════════════════
    CRATESIDE
-   The whole app is a storage room. Everything you keep lives in a
-   crate on a shelf: your top fives, your most-played, your minutes.
+   A storage room you actually want to walk into. Every crate is
+   painted its own colour, so the shelf reads at a glance and you
+   learn your collection by sight before you read a word.
    ══════════════════════════════════════════════════════════════ */
 :root{
-  --base:#141110; --raised:#1F1A16; --line:#332A22; --line2:#4A3E32;
-  --paper:#E8DCC8; --dim:#8A7A6A;
-  --brass:#B8895A; --teal:#7A9E9F; --ox:#9C4A3F;
-  --wood:#4A3626; --wood-lt:#63482F; --wood-dk:#2A1E15;
-  --display:'Oswald',system-ui,sans-serif;
-  --body:'Karla',system-ui,sans-serif;
+  --base:#131218; --raised:#1D1B24; --sunk:#0E0D12;
+  --line:#2B2833; --line2:#413C4E;
+  --paper:#F2ECE1; --dim:#918A9E;
+  --wood:#5A4430; --wood-lt:#7A5C40; --wood-dk:#33251A;
+  --ember:#E8763C; --teal:#2FB5B2; --rose:#DE5C93; --gold:#EFBB43;
+  --display:'Archivo Black',system-ui,sans-serif;
+  --body:'Figtree',system-ui,-apple-system,sans-serif;
   --mono:'Space Mono',ui-monospace,monospace;
   --sb:env(safe-area-inset-bottom,0px);
   --st:env(safe-area-inset-top,0px);
@@ -33,310 +35,337 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
-  background:var(--base); color:var(--paper);
-  font-family:var(--body); font-size:15px; line-height:1.45;
+  background:
+    radial-gradient(120% 60% at 50% -10%, #221F2C 0%, transparent 60%),
+    var(--base);
+  background-attachment:fixed;
+  color:var(--paper); font-family:var(--body); font-size:16px; line-height:1.5;
   -webkit-font-smoothing:antialiased; overscroll-behavior-y:none;
 }
-/* a dry, dusty grain over everything — the room this app lives in */
-body::after{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.035;
+body::after{ /* fine paper grain, just enough to kill the flatness */
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.03;
   background-image:
-    repeating-linear-gradient(0deg,transparent 0 2px,rgba(255,255,255,.6) 2px 3px),
-    repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.6) 3px 4px);
+    repeating-linear-gradient(0deg,transparent 0 2px,rgba(255,255,255,.7) 2px 3px),
+    repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.7) 3px 4px);
 }
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
 input,textarea,select{font:inherit;color:inherit;background:none;border:none;outline:none}
-:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:2px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:3px}
 
 /* ---------- chrome ---------- */
 #top{
   position:sticky;top:0;z-index:40;
   padding:calc(var(--st) + 14px) 18px 12px;
-  background:linear-gradient(var(--base) 74%,transparent);
-  display:flex;align-items:baseline;gap:10px;
+  background:linear-gradient(var(--base) 72%,transparent);
+  display:flex;align-items:center;gap:10px;
 }
-.wordmark{font-family:var(--display);font-weight:600;font-size:19px;
-  letter-spacing:.16em;text-transform:uppercase}
-.wordmark span{color:var(--brass)}
-#count{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em;flex:1}
-#gear{font-size:17px;color:var(--dim);padding:4px 2px;align-self:center}
+.wordmark{font-family:var(--display);font-size:17px;letter-spacing:-.02em;line-height:1}
+.wordmark span{
+  background:linear-gradient(92deg,var(--ember),var(--gold));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+#count{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.04em;flex:1;line-height:1.3}
+#gear{font-size:20px;color:var(--dim);padding:8px;margin:-8px -6px -8px 0;align-self:center}
 
-main{padding:0 18px 116px;max-width:640px;margin:0 auto}
+main{padding:0 18px 124px;max-width:640px;margin:0 auto}
 .pane{display:none}
-.pane.on{display:block;animation:rise .22s ease-out}
-@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.pane.on{display:block;animation:rise .24s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 .eyebrow{
-  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--dim);margin:22px 0 10px;display:flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--dim);margin:26px 0 12px;display:flex;align-items:center;gap:10px;
 }
-.eyebrow::after{content:'';flex:1;height:1px;background:var(--line)}
+.eyebrow::after{content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,var(--line),transparent)}
 
 /* ---------- recently played rail ---------- */
-#rail{display:flex;gap:9px;overflow-x:auto;padding:2px 18px 4px;margin:0 -18px;scrollbar-width:none}
+#rail{display:flex;gap:10px;overflow-x:auto;padding:2px 18px 6px;margin:0 -18px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
 #rail::-webkit-scrollbar{display:none}
-.rchip{flex:0 0 auto;width:96px;text-align:left;animation:rise .3s ease-out backwards}
-.rchip img{width:96px;height:96px;border-radius:3px;display:block;background:var(--raised)}
-.rchip b{display:-webkit-box;font-family:var(--display);font-weight:500;font-size:12px;
-  line-height:1.25;margin-top:6px;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.rchip i{display:block;font-style:normal;font-size:11px;color:var(--dim);
+.rchip{flex:0 0 auto;width:104px;text-align:left;animation:rise .3s ease-out backwards}
+.rchip img,.rchip .mono{width:104px;height:104px;border-radius:6px;display:block;
+  background:var(--raised);box-shadow:0 4px 12px -4px rgba(0,0,0,.7)}
+.rchip b{display:-webkit-box;font-weight:700;font-size:12.5px;line-height:1.3;margin-top:7px;
+  overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.rchip i{display:block;font-style:normal;font-size:11.5px;color:var(--dim);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rchip:active{opacity:.6}
 
 /* ---------- the spine ---------- */
 .spine{
   display:flex;align-items:stretch;background:var(--raised);
-  border-left:3px solid var(--brass);border-radius:2px;
-  margin-bottom:5px;width:100%;text-align:left;overflow:hidden;position:relative;
+  border-radius:8px;margin-bottom:7px;width:100%;text-align:left;
+  overflow:hidden;position:relative;min-height:60px;
   transition:transform .16s ease,background .16s ease;
 }
-.spine:active{transform:translateX(5px);background:#2A231C}
-.spine.t-song{border-left-color:var(--teal)}
-.spine.t-artist{border-left-color:var(--ox)}
-.spine .lab{width:52px;height:52px;flex:0 0 52px;background:var(--base);object-fit:cover}
-.spine .txt{flex:1;min-width:0;padding:8px 10px;display:flex;flex-direction:column;justify-content:center}
-.spine .ttl{font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.02em;
-  line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.spine .art{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.spine .side{flex:0 0 auto;padding:0 11px 0 6px;display:flex;flex-direction:column;
-  align-items:flex-end;justify-content:center;gap:4px}
-.spine .when{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.04em}
-.kind{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--dim);border:1px solid var(--line2);border-radius:2px;padding:1px 4px}
+.spine::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:var(--sc,var(--line2))}
+.spine:active{transform:scale(.985);background:#252230}
+.spine.t-album{--sc:var(--ember)}
+.spine.t-song{--sc:var(--teal)}
+.spine.t-artist{--sc:var(--rose)}
+.spine .lab{width:60px;height:60px;flex:0 0 60px;background:var(--sunk);
+  object-fit:cover;margin-left:4px}
+.spine .txt{flex:1;min-width:0;padding:9px 12px;display:flex;flex-direction:column;
+  justify-content:center;gap:1px}
+.spine .ttl{font-weight:700;font-size:14.5px;line-height:1.25;letter-spacing:-.005em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spine .art{font-size:12.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spine .side{flex:0 0 auto;padding:0 12px 0 6px;display:flex;flex-direction:column;
+  align-items:flex-end;justify-content:center;gap:5px}
+.spine .when{font-family:var(--mono);font-size:9px;color:var(--dim)}
+.kind{font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--sc,var(--dim));border:1px solid currentColor;border-radius:3px;
+  padding:1px 5px;opacity:.75}
 
-/* Artists come back from the catalogue with no artwork, so they get
-   a stamped monogram instead of an empty square. */
+/* monogram fallback — carries the same colour as its spine */
 .mono{
   display:flex;align-items:center;justify-content:center;flex:0 0 auto;
-  background:linear-gradient(158deg,#7A5B3C,#5C4430 55%,#3A2A1D);
-  color:rgba(232,220,200,.92);font-family:var(--display);font-weight:500;
-  letter-spacing:.03em;border-radius:2px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
+  background:linear-gradient(150deg,var(--sc,var(--line2)),transparent 105%),var(--sunk);
+  color:var(--paper);font-family:var(--display);border-radius:4px;
 }
 .mono.round{border-radius:50%}
-.spine .mono{width:52px;height:52px;flex-basis:52px;font-size:21px}
-.res .mono{width:54px;height:54px;flex-basis:54px;font-size:22px}
-.shead .mono{width:88px;height:88px;flex-basis:88px;font-size:34px}
-.rchip .mono{width:96px;height:96px;font-size:38px}
+.spine .mono{width:60px;height:60px;flex-basis:60px;font-size:22px;margin-left:4px}
+.res .mono{width:58px;height:58px;flex-basis:58px;font-size:22px}
+.shead .mono{width:92px;height:92px;flex-basis:92px;font-size:34px}
+.rchip .mono{font-size:40px}
 
 /* ---------- notches ---------- */
-.notches{display:flex;gap:1.5px;align-items:flex-end;height:11px}
-.notch{width:2.5px;height:5px;background:#4A3E32;border-radius:.5px}
-.notch.f{background:var(--brass);height:11px}
-.notches.lg{height:26px;gap:4px}
-.notches.lg .notch{width:6px;height:12px;border-radius:1px}
-.notches.lg .notch.f{height:26px}
+.notches{display:flex;gap:2px;align-items:flex-end;height:13px}
+.notch{width:3px;height:5px;background:var(--line2);border-radius:1px}
+.notch.f{background:var(--gold);height:13px}
+.notches.lg{height:34px;gap:5px}
+.notches.lg .notch{width:8px;height:14px;border-radius:2px}
+.notches.lg .notch.f{height:34px;
+  background:linear-gradient(var(--gold),var(--ember))}
 
 .daymark{font-family:var(--mono);font-size:10px;color:var(--dim);
-  letter-spacing:.1em;text-transform:uppercase;margin:16px 0 7px}
+  letter-spacing:.12em;text-transform:uppercase;margin:20px 0 9px}
 
 /* ══════════════════════════════════════════════════════════════
    SIGNATURE — the shelf
    ══════════════════════════════════════════════════════════════ */
-.shelfrow{margin-bottom:30px}
-.shelfrow .crates{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 2px;align-items:end}
+.shelfrow{margin-bottom:26px}
+.shelfrow .crates{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:end}
 .board{
-  height:13px;margin:0 -18px;
-  background:
-    linear-gradient(180deg,var(--wood-lt) 0 3px,var(--wood) 3px 8px,var(--wood-dk) 8px);
-  box-shadow:0 6px 16px -6px rgba(0,0,0,.85);
-  position:relative;
+  height:14px;margin:0 -18px;
+  background:linear-gradient(180deg,var(--wood-lt) 0 3px,var(--wood) 3px 9px,var(--wood-dk) 9px);
+  box-shadow:0 8px 18px -7px rgba(0,0,0,.9);position:relative;
 }
-.board::after{ /* the plank's front edge, catching a little light */
-  content:'';position:absolute;left:0;right:0;top:0;height:1px;
-  background:rgba(232,220,200,.14);
-}
+.board::after{content:'';position:absolute;left:0;right:0;top:0;height:1px;
+  background:rgba(255,235,205,.22)}
 
 .crate{
   position:relative;display:flex;flex-direction:column;align-items:stretch;
   width:100%;text-align:left;
-  transition:transform .17s cubic-bezier(.2,.8,.3,1);
+  animation:pop .32s cubic-bezier(.2,.9,.3,1) backwards;
+  transition:transform .18s cubic-bezier(.2,.8,.3,1);
 }
-.crate:active{transform:translateY(-5px)}
-/* the tops of the records, standing up out of the crate — each crate's
-   profile is derived from its name, so no two look stamped from one mould */
-.peek{display:flex;gap:1.5px;align-items:flex-end;height:27px;margin:0 8%;flex:0 0 auto}
-.peek i{flex:1;border-radius:1px 1px 0 0;background:#5E4E3E;
-  box-shadow:inset 0 1px 0 rgba(232,220,200,.16)}
-.peek i.alt{background:#493B2E}
-.peek i.hi{background:var(--brass);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.crate:active{transform:translateY(-6px) scale(1.02)}
+.peek{display:flex;gap:1.5px;align-items:flex-end;height:26px;margin:0 7%;flex:0 0 auto}
+.peek i{flex:1;border-radius:2px 2px 0 0;background:#4A3E33;
+  box-shadow:inset 0 1px 0 rgba(255,240,220,.2)}
+.peek i.alt{background:#372E26}
+.peek i.hi{background:var(--hi);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
 .box{
-  position:relative;width:100%;aspect-ratio:3/2;flex:0 0 auto;
-  border-radius:2px 2px 3px 3px;
-  background:linear-gradient(172deg,var(--wood-lt),var(--wood) 45%,var(--wood-dk));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),
-             inset 0 -6px 10px -6px rgba(0,0,0,.7),
-             0 5px 9px -5px rgba(0,0,0,.7);
-  overflow:hidden;
+  position:relative;width:100%;aspect-ratio:16/10;flex:0 0 auto;
+  border-radius:4px 4px 6px 6px;overflow:hidden;
+  background:linear-gradient(168deg,var(--hi),var(--mid) 42%,var(--lo));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),
+             inset 0 -10px 14px -8px rgba(0,0,0,.55),
+             0 7px 14px -7px rgba(0,0,0,.8);
 }
 .box::before{ /* slats */
-  content:'';position:absolute;inset:0;opacity:.5;
+  content:'';position:absolute;inset:0;opacity:.42;
   background:repeating-linear-gradient(180deg,
-    transparent 0 13px, rgba(0,0,0,.35) 13px 15px, rgba(255,255,255,.05) 15px 16px);
+    transparent 0 12px, rgba(0,0,0,.45) 12px 14px, rgba(255,255,255,.14) 14px 15px);
 }
 .plate{
-  position:absolute;left:9%;right:9%;top:50%;transform:translateY(-50%);
-  background:rgba(20,17,16,.82);border:1px solid rgba(232,220,200,.22);
-  border-radius:1px;padding:7px 4px;text-align:center;
-  font-family:var(--display);font-weight:500;font-size:11.5px;line-height:1.15;
-  letter-spacing:.13em;text-transform:uppercase;color:var(--paper);
+  position:absolute;left:8%;right:8%;top:50%;transform:translateY(-50%);
+  background:var(--paper);border-radius:2px;padding:7px 5px;text-align:center;
+  font-family:var(--display);font-size:10px;line-height:1.2;letter-spacing:-.01em;
+  text-transform:uppercase;color:#1A1720;z-index:2;
+  box-shadow:0 2px 5px rgba(0,0,0,.4);
 }
 .tally{
-  position:absolute;right:7px;bottom:5px;font-family:var(--mono);font-size:9px;
-  color:rgba(232,220,200,.55);letter-spacing:.05em;
+  position:absolute;right:8px;bottom:6px;font-family:var(--mono);font-size:9px;
+  font-weight:700;color:rgba(255,255,255,.75);z-index:2;
 }
-.crate.bare .peek i{background:var(--line)}
-.crate.bare .plate{color:var(--dim);border-color:rgba(232,220,200,.1)}
+/* An empty crate keeps its colour, just unlit — you should still know
+   which one it is. The wash sits under the label so it stays readable. */
+.crate.bare .box::after{content:'';position:absolute;inset:0;background:rgba(17,16,22,.76)}
+.crate.bare .box{box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 5px 12px -7px rgba(0,0,0,.8)}
+.crate.bare .peek i{background:#2B2634}
+.crate.bare .peek i.hi{background:var(--mid);opacity:.5}
+.crate.bare .plate{background:rgba(242,236,225,.17);color:#B9B2C6;box-shadow:none}
 
-/* ---------- rank marks inside an opened crate ---------- */
-.rank{font-family:var(--display);font-weight:600;font-size:15px;color:var(--ox);
-  width:19px;flex:0 0 19px;text-align:center;align-self:center;letter-spacing:.02em}
-.pinned .rank{color:var(--brass)}
-.spine.slot{border-left-color:var(--line2)}
-.editrow{display:flex;gap:5px;flex:0 0 auto;align-items:center;padding-right:8px}
-.ebtn{font-family:var(--mono);font-size:12px;color:var(--dim);
-  border:1px solid var(--line2);border-radius:2px;width:26px;height:26px;line-height:1}
-.ebtn.on{color:var(--brass);border-color:var(--brass)}
+/* ---------- rank marks ---------- */
+.rank{font-family:var(--display);font-size:15px;color:var(--gold);
+  width:26px;flex:0 0 26px;text-align:center;align-self:center;padding-left:4px}
+.editrow{display:flex;gap:6px;flex:0 0 auto;align-items:center;padding-right:10px}
+.ebtn{font-family:var(--mono);font-size:14px;color:var(--dim);
+  border:1px solid var(--line2);border-radius:6px;width:34px;height:34px;line-height:1}
+.ebtn:active{background:var(--line)}
+.ebtn.on{color:var(--base);border-color:var(--gold);background:var(--gold);font-weight:700}
+.ebtn[disabled]{opacity:.28}
 
 /* ---------- readouts ---------- */
 .bigstat{
-  background:var(--raised);border:1px solid var(--line);border-radius:3px;
-  padding:16px;margin-bottom:10px;
+  background:linear-gradient(150deg,var(--raised),var(--sunk));
+  border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:11px;
+  position:relative;overflow:hidden;
 }
-.bigstat .n{font-family:var(--display);font-weight:300;font-size:38px;line-height:1;
-  letter-spacing:-.01em;color:var(--brass)}
-.bigstat .n small{font-size:15px;color:var(--dim);letter-spacing:.08em;margin-left:5px}
-.bigstat .k{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--dim);margin-top:7px}
-.split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.split .bigstat{margin:0}
-.split .n{font-size:26px}
+.bigstat::after{content:'';position:absolute;right:-30px;top:-30px;width:110px;height:110px;
+  border-radius:50%;background:radial-gradient(var(--ac,var(--ember)),transparent 68%);opacity:.2}
+.bigstat .n{font-family:var(--display);font-size:40px;line-height:1;letter-spacing:-.035em;
+  background:linear-gradient(100deg,var(--paper),var(--ac,var(--ember)));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.bigstat .n small{font-family:var(--body);font-weight:700;font-size:14px;
+  color:var(--dim);letter-spacing:0;margin-left:6px;-webkit-text-fill-color:var(--dim)}
+.bigstat .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);margin-top:9px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.split .bigstat{margin:0;padding:15px}
+.split .n{font-size:27px}
 
-.bar{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
-.bar .nm{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar .vl{font-family:var(--mono);font-size:11px;color:var(--brass);flex:0 0 auto}
-.bar .track{height:3px;background:var(--line);border-radius:2px;margin-top:5px;overflow:hidden}
-.bar .fill{height:100%;background:var(--brass);border-radius:2px}
-.barwrap{padding:9px 0;border-bottom:1px solid var(--line)}
+.barwrap{padding:11px 0;border-bottom:1px solid var(--line)}
 .barwrap:last-child{border:0}
 .barhead{display:flex;gap:10px;align-items:baseline}
+.barhead .nm{flex:1;min-width:0;font-size:14.5px;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barhead .vl{font-family:var(--mono);font-size:11px;color:var(--gold);flex:0 0 auto}
+.track{height:5px;background:var(--line);border-radius:3px;margin-top:7px;overflow:hidden}
+.fill{height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--ember),var(--gold))}
 
 /* ---------- search / segmented ---------- */
-#sbar{display:flex;align-items:center;gap:9px;background:var(--raised);
-  border:1px solid var(--line);border-radius:3px;padding:11px 13px;margin-top:4px}
-#sbar:focus-within{border-color:var(--brass)}
+#sbar{display:flex;align-items:center;gap:10px;background:var(--raised);
+  border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-top:4px}
+#sbar:focus-within{border-color:var(--teal)}
 #q{flex:1;font-size:16px}
 #q::placeholder{color:var(--dim)}
-#sclear{color:var(--dim);font-size:16px;padding:0 2px;display:none}
-.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:3px;
-  overflow:hidden;margin-top:10px}
-.seg button{flex:1;padding:9px 4px;font-family:var(--mono);font-size:10px;
-  letter-spacing:.11em;text-transform:uppercase;color:var(--dim);
-  border-right:1px solid var(--line)}
-.seg button:last-child{border-right:0}
-.seg button.on{background:var(--brass);color:var(--base)}
+#sclear{color:var(--dim);font-size:18px;padding:6px;margin:-6px}
+.seg{display:flex;background:var(--sunk);border-radius:10px;padding:4px;margin-top:11px;gap:4px}
+.seg button{flex:1;padding:10px 4px;font-size:12px;font-weight:700;letter-spacing:.01em;
+  color:var(--dim);border-radius:7px;transition:background .15s,color .15s}
+.seg button.on{background:var(--paper);color:var(--base)}
 
-.res{display:flex;gap:11px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
-.res img{width:54px;height:54px;border-radius:2px;flex:0 0 54px;background:var(--raised)}
-.res img.round{border-radius:50%}
+.res{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.res img{width:58px;height:58px;border-radius:6px;flex:0 0 58px;background:var(--raised)}
+.res img.round,.res .mono.round{border-radius:50%}
 .res .m{flex:1;min-width:0}
-.res .m b{display:-webkit-box;font-family:var(--display);font-weight:500;font-size:14px;
-  line-height:1.25;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.res .m i{font-style:normal;font-size:12px;color:var(--dim);display:block;
+.res .m b{display:-webkit-box;font-weight:700;font-size:14.5px;line-height:1.3;
+  overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.res .m i{font-style:normal;font-size:12.5px;color:var(--dim);display:block;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.res .m em{font-family:var(--mono);font-style:normal;font-size:10px;color:var(--dim)}
-.acts{display:flex;gap:6px;flex:0 0 auto}
-.mini{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
-  border:1px solid var(--line2);border-radius:2px;padding:7px 9px;color:var(--dim)}
-.mini.go{border-color:var(--brass);color:var(--brass)}
+.res .m em{font-family:var(--mono);font-style:normal;font-size:9.5px;color:var(--dim)}
+.acts{display:flex;gap:7px;flex:0 0 auto}
+.mini{font-size:12px;font-weight:700;border:1px solid var(--line2);border-radius:8px;
+  padding:9px 12px;color:var(--dim)}
+.mini.go{border-color:var(--gold);color:var(--gold)}
 .mini:active{background:var(--line)}
 .mini.done{border-color:var(--teal);color:var(--teal)}
 
 /* ---------- sheet ---------- */
-#scrim{position:fixed;inset:0;background:rgba(8,6,5,.74);z-index:60;display:none;
-  backdrop-filter:blur(2px)}
+#scrim{position:fixed;inset:0;background:rgba(8,7,11,.76);z-index:60;display:none;
+  backdrop-filter:blur(3px)}
 #scrim.on{display:block;animation:fade .18s}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 #sheet{
   position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--raised);
-  border-top:2px solid var(--brass);border-radius:10px 10px 0 0;
-  padding:20px 20px calc(22px + var(--sb));
-  max-height:88vh;overflow-y:auto;display:none;max-width:640px;margin:0 auto;
+  border-radius:20px 20px 0 0;padding:18px 18px calc(20px + var(--sb));
+  max-height:90vh;overflow-y:auto;display:none;max-width:640px;margin:0 auto;
+  box-shadow:0 -14px 44px rgba(0,0,0,.65);
+  -webkit-overflow-scrolling:touch;
+  background-image:linear-gradient(90deg,var(--ember),var(--gold),var(--teal));
+  background-size:100% 3px;background-repeat:no-repeat;background-position:0 0;
 }
-#sheet.on{display:block;animation:up .24s cubic-bezier(.2,.8,.3,1)}
+
+#sheet.on{display:block;animation:up .28s cubic-bezier(.2,.85,.3,1)}
 @keyframes up{from{transform:translateY(100%)}to{transform:none}}
-.grab{width:34px;height:3px;background:var(--line2);border-radius:2px;margin:-8px auto 16px}
-.shead{display:flex;gap:13px;margin-bottom:18px}
-.shead img{width:88px;height:88px;border-radius:3px;flex:0 0 88px;background:var(--base)}
+.grab{width:38px;height:4px;background:var(--line2);border-radius:3px;margin:2px auto 16px}
+.shead{display:flex;gap:14px;margin-bottom:20px}
+.shead img{width:92px;height:92px;border-radius:8px;flex:0 0 92px;background:var(--sunk)}
 .shead img.round{border-radius:50%}
-.shead h2{font-family:var(--display);font-weight:500;font-size:19px;line-height:1.2;margin:0 0 3px}
-.shead p{margin:0;color:var(--dim);font-size:13px}
-.shead em{font-family:var(--mono);font-style:normal;font-size:10px;color:var(--dim);
-  display:block;margin-top:5px;letter-spacing:.06em}
-.sheettitle{font-family:var(--display);font-weight:500;font-size:20px;letter-spacing:.09em;
-  text-transform:uppercase;margin:0 0 4px}
-.sheetsub{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
-  color:var(--dim);margin:0 0 18px}
-.field{margin-bottom:16px}
-.flabel{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--dim);margin-bottom:8px;display:flex;justify-content:space-between}
-#rate .notch{cursor:pointer;transition:height .1s ease,background .1s ease}
-#note{width:100%;min-height:78px;background:var(--base);border:1px solid var(--line);
-  border-radius:3px;padding:11px;resize:vertical;font-size:15px}
-#note:focus{border-color:var(--brass)}
+.shead h2{font-family:var(--display);font-size:19px;line-height:1.2;margin:0 0 4px;
+  letter-spacing:-.02em}
+.shead p{margin:0;color:var(--dim);font-size:13.5px}
+.shead em{font-family:var(--mono);font-style:normal;font-size:9.5px;color:var(--dim);
+  display:block;margin-top:7px;letter-spacing:.08em;text-transform:uppercase}
+.sheettitle{font-family:var(--display);font-size:23px;letter-spacing:-.03em;
+  margin:0 0 5px;line-height:1.1}
+.sheetsub{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);margin:0 0 20px}
+.field{margin-bottom:18px}
+.flabel{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:10px;display:flex;justify-content:space-between}
+#rate .notch{cursor:pointer;transition:height .12s ease}
+#note{width:100%;min-height:86px;background:var(--sunk);border:1px solid var(--line);
+  border-radius:10px;padding:13px;resize:vertical;font-size:16px}
+#note:focus{border-color:var(--teal)}
 #note::placeholder{color:var(--dim)}
-#when{background:var(--base);border:1px solid var(--line);border-radius:3px;
-  padding:10px;font-family:var(--mono);font-size:13px;width:100%}
-.row{display:flex;gap:9px;margin-top:20px}
-.btn{flex:1;font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.1em;
-  text-transform:uppercase;padding:14px;border-radius:3px;text-align:center}
-.btn.p{background:var(--brass);color:#141110}
-.btn.p:active{background:#A5784C}
-.btn.s{border:1px solid var(--line2);color:var(--dim)}
-.btn.d{border:1px solid var(--ox);color:var(--ox);flex:0 0 auto;padding:14px 18px}
+#when{background:var(--sunk);border:1px solid var(--line);border-radius:10px;
+  padding:13px;font-family:var(--mono);font-size:14px;width:100%}
+.row{display:flex;gap:10px;margin-top:20px}
+.row.stick{position:sticky;bottom:calc(-20px - var(--sb));margin-top:16px;
+  padding:14px 0 calc(16px + var(--sb));
+  background:linear-gradient(transparent,var(--raised) 34%)}
+.btn{flex:1;font-weight:700;font-size:15px;padding:16px;border-radius:11px;text-align:center;
+  letter-spacing:.01em}
+.btn.p{background:linear-gradient(100deg,var(--gold),var(--ember));color:#171319}
+.btn.p:active{filter:brightness(.9)}
+.btn.s{border:1px solid var(--line2);color:var(--paper)}
+.btn.d{border:1px solid var(--rose);color:var(--rose);flex:0 0 auto;padding:16px 20px}
 
 /* ---------- nav ---------- */
 #nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;
-  background:rgba(20,17,16,.95);backdrop-filter:blur(14px);
+  background:rgba(19,18,24,.92);backdrop-filter:blur(18px);
   border-top:1px solid var(--line);padding-bottom:var(--sb)}
-#nav button{flex:1;padding:12px 4px 11px;font-family:var(--mono);font-size:9px;
-  letter-spacing:.13em;text-transform:uppercase;color:var(--dim);
-  border-top:2px solid transparent;margin-top:-1px}
-#nav button.on{color:var(--brass);border-top-color:var(--brass)}
+#nav button{flex:1;padding:11px 4px 10px;display:flex;flex-direction:column;
+  align-items:center;gap:4px;color:var(--dim);transition:color .16s}
+#nav .ic{width:22px;height:22px;display:block;transition:transform .2s cubic-bezier(.2,.9,.3,1)}
+#nav .ic svg{width:22px;height:22px;display:block}
+#nav .tx{font-size:9.5px;font-weight:700;letter-spacing:.04em}
+#nav button.on{color:var(--gold)}
+#nav button.on .ic{transform:translateY(-2px) scale(1.12)}
 
 /* ---------- misc ---------- */
-.empty{padding:36px 6px;color:var(--dim);font-size:14px;line-height:1.6}
-.empty b{display:block;font-family:var(--display);font-weight:500;font-size:16px;
-  color:var(--paper);letter-spacing:.03em;margin-bottom:6px}
-.note{font-size:12.5px;color:var(--dim);line-height:1.55}
-.note code{font-family:var(--mono);font-size:11px;color:var(--brass);
-  background:var(--base);padding:2px 5px;border-radius:2px;word-break:break-all}
-#cid{width:100%;background:var(--base);border:1px solid var(--line);border-radius:3px;
-  padding:12px;font-family:var(--mono);font-size:14px;margin-top:12px;letter-spacing:.02em}
-#cid:focus{border-color:var(--brass)}
-#cid::placeholder{color:var(--dim);letter-spacing:.08em}
-#cidhelp{margin:8px 0 0}
-.set{border-bottom:1px solid var(--line);padding:15px 0}
+.empty{padding:34px 6px;color:var(--dim);font-size:14.5px;line-height:1.65}
+.empty b{display:block;font-family:var(--display);font-size:16px;color:var(--paper);
+  letter-spacing:-.02em;margin-bottom:7px}
+.note{font-size:13px;color:var(--dim);line-height:1.6}
+.note code{font-family:var(--mono);font-size:11px;color:var(--gold);
+  background:var(--sunk);padding:3px 6px;border-radius:4px;word-break:break-all}
+.finput,#cid{width:100%;background:var(--sunk);border:1px solid var(--line);
+  border-radius:10px;padding:13px;font-family:var(--mono);font-size:14px;margin-top:12px}
+.finput:focus,#cid:focus{border-color:var(--teal)}
+#cid::placeholder{color:var(--dim)}
+.finput::placeholder{color:var(--dim)}
+.finput{margin:0 0 12px;font-family:var(--body);font-size:16px}
+#cidhelp{margin:9px 0 0}
+.set{border-bottom:1px solid var(--line);padding:18px 0}
 .set:last-child{border:0}
-.set h3{font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.06em;
-  text-transform:uppercase;margin:0 0 7px}
-.pick{width:100%;background:var(--base);border:1px solid var(--line);border-radius:3px;
-  padding:11px;font-size:15px;margin-bottom:10px;
+.set h3{font-family:var(--display);font-size:14px;letter-spacing:-.02em;margin:0 0 8px}
+.pick{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:10px;
+  padding:13px;font-size:15px;margin-bottom:11px;
   -webkit-appearance:none;appearance:none;
   background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),
                    linear-gradient(135deg,var(--dim) 50%,transparent 50%);
-  background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;
-  background-size:5px 5px,5px 5px;background-repeat:no-repeat}
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + var(--sb));
-  background:var(--paper);color:var(--base);font-family:var(--mono);font-size:11px;
-  letter-spacing:.06em;padding:9px 15px;border-radius:2px;z-index:70;
-  opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;max-width:88vw}
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
+  background-size:6px 6px,6px 6px;background-repeat:no-repeat}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + var(--sb));
+  background:var(--paper);color:var(--base);font-size:13px;font-weight:700;
+  padding:11px 18px;border-radius:24px;z-index:70;
+  opacity:0;pointer-events:none;transition:opacity .2s;max-width:88vw;
+  box-shadow:0 8px 24px rgba(0,0,0,.5)}
 #toast.on{opacity:1}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--line2);display:inline-block;
-  vertical-align:middle;margin-right:5px}
-.dot.live{background:var(--teal)}
-.spin{display:inline-block;width:11px;height:11px;border:1.5px solid var(--line);
-  border-top-color:var(--brass);border-radius:50%;animation:sp .7s linear infinite}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--line2);display:inline-block;
+  vertical-align:middle;margin-right:6px}
+.dot.live{background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--line);
+  border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
@@ -351,7 +380,7 @@ main{padding:0 18px 116px;max-width:640px;margin:0 auto}
 
 <main>
   <!-- ══ LOG ══ -->
-  <section class="pane on" id="p-log">
+  <section class="pane" id="p-log">
     <div id="railwrap" style="display:none">
       <div class="eyebrow"><span class="dot live"></span>Played recently</div>
       <div id="rail"></div>
@@ -376,7 +405,7 @@ main{padding:0 18px 116px;max-width:640px;margin:0 auto}
   </section>
 
   <!-- ══ SHELF ══ -->
-  <section class="pane" id="p-shelf">
+  <section class="pane on" id="p-shelf">
     <div id="minutes"></div>
     <div id="shelves"></div>
   </section>
@@ -433,10 +462,10 @@ main{padding:0 18px 116px;max-width:640px;margin:0 auto}
 </main>
 
 <nav id="nav">
-  <button data-p="log" class="on">Log</button>
-  <button data-p="find">Find</button>
-  <button data-p="shelf">Shelf</button>
-  <button data-p="disc">Discover</button>
+  <button data-p="shelf" class="on"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 4v11M9 6v9M14 3v12M19 7v8"/><path d="M2 18h20"/></svg></span><span class="tx">Shelf</span></button>
+  <button data-p="log"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 5h16M4 12h16M4 19h10"/></svg></span><span class="tx">Log</span></button>
+  <button data-p="find"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></span><span class="tx">Find</span></button>
+  <button data-p="disc"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3l2.2 5.9L20 11l-5.8 2.1L12 19l-2.2-5.9L4 11l5.8-2.1z"/></svg></span><span class="tx">Discover</span></button>
 </nav>
 
 <div id="scrim"></div>
@@ -747,24 +776,24 @@ function drawDiary(){
     `${entries.length} rated · ${entries.filter(e=>e.date.startsWith(yr)).length} this year`;
 }
 
-/* ══ ranking ═══════════════════════════════════════════════════
-   Crates fill themselves from your ratings. Rearranging one pins
-   it — from then on that crate is yours, until you reset it.
+/* ══ crates ════════════════════════════════════════════════════
+   Ratings are a record of what you thought at the time. A top five is
+   what you'd say today. They are deliberately unrelated — a crate only
+   ever holds what you put in it, in the order you put it.
    ══════════════════════════════════════════════════════════════ */
-const ranked = f => entries.filter(f).sort((a,b) => b.rating - a.rating || b.created - a.created);
-
-/* An untouched crate ranks itself by rating. The moment you rearrange
-   one it holds exactly what you put in it, nothing more, until reset. */
-function top5(k, f){
-  const p = pins[k];
-  if(p) return p.map(id => entries.find(e => e.id === id))
-                .filter(Boolean).slice(0,5).map(e => ({ ...e, _pin:true }));
-  return ranked(f).slice(0,5);
+function top5(k){
+  return (pins[k] || []).map(id => entries.find(e => e.id === id))
+                        .filter(Boolean).slice(0,5);
 }
-const candidates = (k, f) => {
+function candidates(k, f, q){
   const have = new Set(pins[k] || []);
-  return ranked(f).filter(e => !have.has(e.id)).slice(0,12);
-};
+  const s = (q || '').trim().toLowerCase();
+  return entries.filter(f)
+    .filter(e => !have.has(e.id))
+    .filter(e => !s || (e.name + ' ' + e.artist).toLowerCase().includes(s))
+    .sort((a,b) => b.created - a.created)
+    .slice(0, 60);
+}
 
 const inWindow = (p, days) => !days || (Date.now() - Date.parse(p.ts)) < days * DAYMS;
 
@@ -815,18 +844,40 @@ function crates(){
 }
 
 function crateCount(c){
-  if(c.kind === 'rated') return top5(c.k, c.f).length;
+  if(c.kind === 'rated') return top5(c.k).length;
   if(c.kind === 'later') return shelf.length;
   if(c.kind === 'plays') return playRank(c.days,'song').length;
   if(c.kind === 'mins')  return minsBy(c.by).length;
   return 0;
 }
 
-/* A crate's stack of records is drawn from a hash of its name, so the
-   shelf reads as a room of different crates rather than one repeated. */
-function peek(k, filled){
+/* Every crate is painted, so the shelf reads by colour before you get
+   to the words. Built-ins get fixed paint; genre crates draw theirs
+   from a hash of the name, so a genre keeps its colour for good. */
+const PAINT = [
+  { hi:'#F0854A', mid:'#D2551F', lo:'#7E2E0E' },   // ember
+  { hi:'#3FC7C4', mid:'#1E9694', lo:'#0B5150' },   // teal
+  { hi:'#E9739F', mid:'#C33E76', lo:'#6F2040' },   // rose
+  { hi:'#F3C551', mid:'#D19F22', lo:'#7A5A0F' },   // gold
+  { hi:'#BEDE57', mid:'#93B227', lo:'#4F6112' },   // lime
+  { hi:'#7A9CEC', mid:'#3F63C9', lo:'#1F3472' },   // cobalt
+  { hi:'#6FE0A6', mid:'#2FAE72', lo:'#13603C' },   // mint
+  { hi:'#B287EC', mid:'#8151C9', lo:'#432770' },   // violet
+  { hi:'#EC7B6B', mid:'#BE4334', lo:'#6C231A' }    // brick
+];
+const FIXED = { songs:0, albums:1, artists:2, later:3, week:4, month:5, minart:6, minpl:7 };
+function hash32(k){
   let h = 2166136261;
   for(let i=0;i<k.length;i++) h = Math.imul(h ^ k.charCodeAt(i), 16777619) >>> 0;
+  return h;
+}
+function paint(k){
+  const i = FIXED[k] !== undefined ? FIXED[k] : hash32(k) % PAINT.length;
+  const p = PAINT[i];
+  return `--hi:${p.hi};--mid:${p.mid};--lo:${p.lo}`;
+}
+function peek(k, filled){
+  let h = hash32(k);
   const hi = h % 12;
   let out = '';
   for(let i=0;i<12;i++){
@@ -844,13 +895,13 @@ function drawShelf(){
   const h    = hrs(all);
   wrap.innerHTML = plays.length ? `
     <div class="eyebrow">Time on the needle</div>
-    <div class="bigstat">
+    <div class="bigstat" style="--ac:#F3C551">
       <div class="n">${h.n}<small>${h.u}</small></div>
       <div class="k">Since you connected Spotify</div>
     </div>
     <div class="split">
-      <div class="bigstat"><div class="n">${mins(wk)}<small>min</small></div><div class="k">Past 7 days</div></div>
-      <div class="bigstat"><div class="n">${mins(mo)}<small>min</small></div><div class="k">Past 30 days</div></div>
+      <div class="bigstat" style="--ac:#3FC7C4"><div class="n">${mins(wk)}<small>min</small></div><div class="k">Past 7 days</div></div>
+      <div class="bigstat" style="--ac:#E9739F"><div class="n">${mins(mo)}<small>min</small></div><div class="k">Past 30 days</div></div>
     </div>` : `
     <div class="eyebrow">Time on the needle</div>
     <div class="empty"><b>No listening history yet</b>
@@ -863,7 +914,8 @@ function drawShelf(){
     out += '<div class="shelfrow"><div class="crates">';
     for(const c of cs.slice(i, i+2)){
       const n = crateCount(c);
-      out += `<button class="crate${n?'':' bare'}" data-crate="${esc(c.k)}">
+      out += `<button class="crate${n?'':' bare'}" data-crate="${esc(c.k)}"
+        style="${paint(c.k)};animation-delay:${Math.min(i*40,320)}ms">
         <span class="peek">${peek(c.k, n)}</span>
         <span class="box">
           <span class="plate">${esc(c.t)}</span>
@@ -877,7 +929,7 @@ function drawShelf(){
 }
 
 /* ══ opening a crate ═══════════════════════════════════════════ */
-let editing = null;
+let editing = null, editQ = '';
 
 function openCrate(k){
   const c = crates().find(x => x.k === k);
@@ -885,47 +937,29 @@ function openCrate(k){
   let body = '', foot = '';
 
   if(c.kind === 'rated'){
-    const items = top5(c.k, c.f);
-    if(!items.length){
-      body = `<div class="empty"><b>Empty crate</b>
-        Rate something that fits and it lands here on its own.</div>`;
-    } else if(editing === k){
-      const ids = pins[k] || items.map(e => e.id);
-      body = ids.map((id, i) => {
-        const e = entries.find(x => x.id === id); if(!e) return '';
-        return `<div class="spine t-${e.type} pinned">
-          <span class="rank">${i+1}</span>${tile(e,'lab')}
-          <span class="txt"><span class="ttl">${esc(e.name)}</span>
-            <span class="art">${e.type==='artist'?esc(e.genre):esc(e.artist)}</span></span>
-          <span class="editrow">
-            <button class="ebtn" data-mv="up:${i}" aria-label="Move up">↑</button>
-            <button class="ebtn" data-mv="dn:${i}" aria-label="Move down">↓</button>
-            <button class="ebtn" data-mv="rm:${i}" aria-label="Remove">✕</button>
-          </span></div>`;
-      }).join('');
-      const cand = ids.length < 5 ? candidates(k, c.f) : [];
-      if(cand.length){
-        body += `<div class="flabel" style="margin-top:20px"><span>Add</span>
-          <span>${5 - ids.length} slot${5-ids.length>1?'s':''} free</span></div>` +
-          cand.map(e => `<div class="spine t-${e.type} slot">
-            ${tile(e,'lab')}
-            <span class="txt"><span class="ttl">${esc(e.name)}</span>
-              <span class="art">${e.type==='artist'?esc(e.genre):esc(e.artist)}</span></span>
-            <span class="editrow">
-              <button class="ebtn on" data-mv="ad:${esc(e.id)}" aria-label="Add">+</button>
-            </span></div>`).join('');
-      }
-      foot = `<div class="row">
+    const chosen = top5(c.k);
+    if(editing === k){
+      body = `<div id="pinlist"></div>
+        <div class="flabel" style="margin-top:20px"><span>Add</span><span id="slots"></span></div>
+        <input class="finput" id="candq" placeholder="Filter your log"
+               autocomplete="off" autocorrect="off" spellcheck="false">
+        <div id="candlist"></div>`;
+      foot = `<div class="row stick">
         <button class="btn p" data-editdone="1">Done</button>
-        <button class="btn s" data-editreset="${esc(k)}">Automatic</button></div>`;
+        <button class="btn d" id="clearcrate">Clear</button></div>`;
+    } else if(!chosen.length){
+      body = `<div class="empty"><b>Empty crate</b>
+        This one's yours to fill. Ratings don't decide it — pick the five you'd
+        name today.</div>`;
+      foot = `<div class="row"><button class="btn p" data-edit="${esc(k)}">Choose five</button></div>`;
     } else {
-      body = items.map((e,i) => spine(e, { rank:i+1, cls: e._pin ? 'pinned' : '' })).join('');
-      foot = `<div class="row"><button class="btn s" data-edit="${esc(k)}">Rearrange</button></div>`;
+      body = chosen.map((e,i) => spine(e, { rank:i+1, cls:'pinned' })).join('');
+      foot = `<div class="row"><button class="btn s" data-edit="${esc(k)}">Edit</button></div>`;
     }
 
   } else if(c.kind === 'later'){
     body = shelf.length
-      ? shelf.map(r => `<div class="res">${tile(r)}
+      ? shelf.map(r => `<div class="res t-${r.type||'album'}">${tile(r)}
           <div class="m"><b>${esc(r.name)}</b><i>${esc(r.artist)}</i></div>
           <div class="acts">
             <button class="mini go" data-shelf-log="${esc(r.k)}">Rate</button>
@@ -976,13 +1010,71 @@ function openCrate(k){
   $('#sheet').innerHTML = `<div class="grab"></div>
     <h2 class="sheettitle">${esc(c.t)}</h2>
     <p class="sheetsub">${
-      c.kind === 'rated' ? (pins[k]?.length ? 'Arranged by you' : 'Ranked by your ratings')
+      c.kind === 'rated' ? `${(pins[k]||[]).length} of 5 chosen`
       : c.kind === 'plays' ? `Counted over the last ${c.days} days`
       : c.kind === 'mins' ? 'All time' : `${shelf.length} waiting` }</p>
     ${body}${foot}`;
   $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
   $('#sheet').scrollTop = 0;
-  $('#sheet').dataset.crate = k;
+  $('#sheet').dataset.openk = k;
+
+  if(c.kind === 'rated' && editing === k){
+    const q = $('#candq');
+    q.value = editQ;
+    q.oninput = () => { editQ = q.value; renderCands(k, c.f) };
+    let armed = false; const cl = $('#clearcrate');
+    cl.onclick = () => {
+      if(!armed){ armed = true; cl.textContent = 'Sure?';
+        setTimeout(() => { armed = false; cl.textContent = 'Clear' }, 3000); return }
+      delete pins[k]; savePins(); drawShelf(); refreshEdit(k, c.f);
+      toast('Crate emptied');
+    };
+    refreshEdit(k, c.f);
+  }
+}
+
+/* Edit mode updates in place so the filter box keeps focus as you type. */
+function refreshEdit(k, f){
+  const arr = pins[k] || [];
+  const pl = $('#pinlist'); if(!pl) return;
+  pl.innerHTML = arr.length ? arr.map((id,i) => {
+    const e = entries.find(x => x.id === id); if(!e) return '';
+    return `<div class="spine t-${e.type} pinned">
+      <span class="rank">${i+1}</span>${tile(e,'lab')}
+      <span class="txt"><span class="ttl">${esc(e.name)}</span>
+        <span class="art">${e.type==='artist'?esc(e.genre):esc(e.artist)}</span></span>
+      <span class="editrow">
+        <button class="ebtn" data-mv="up:${i}" aria-label="Move up">↑</button>
+        <button class="ebtn" data-mv="dn:${i}" aria-label="Move down">↓</button>
+        <button class="ebtn" data-mv="rm:${i}" aria-label="Remove">✕</button>
+      </span></div>`;
+  }).join('') : `<div class="empty" style="padding:18px 4px"><b>Nothing chosen</b>
+    Pick from below. Order is up to you.</div>`;
+  const s = $('#slots');
+  if(s) s.textContent = arr.length >= 5 ? 'Full' : `${5-arr.length} free`;
+  const sub = document.querySelector('.sheetsub');
+  if(sub) sub.textContent = `${arr.length} of 5 chosen`;
+  renderCands(k, f);
+}
+
+function renderCands(k, f){
+  const el = $('#candlist'); if(!el) return;
+  const full = (pins[k] || []).length >= 5;
+  const list = candidates(k, f, editQ);
+  if(!list.length){
+    el.innerHTML = `<div class="empty" style="padding:18px 4px">${
+      editQ ? 'Nothing in your log matches that.'
+            : "Nothing left to add — rate more and it'll show up here."}</div>`;
+    return;
+  }
+  el.innerHTML = list.map(e => `<div class="spine t-${e.type} slot">
+    ${tile(e,'lab')}
+    <span class="txt"><span class="ttl">${esc(e.name)}</span>
+      <span class="art">${e.type==='artist'?esc(e.genre):esc(e.artist)}</span></span>
+    <span class="editrow">
+      <button class="ebtn${full?'':' on'}" data-mv="ad:${esc(e.id)}"
+        ${full?'disabled':''} aria-label="Add">+</button>
+    </span></div>`).join('');
 }
 
 /* ══ rating something ══════════════════════════════════════════ */
@@ -993,7 +1085,7 @@ function openSheet(rec, existing){
   const isArtist = draft.type === 'artist';
   $('#sheet').innerHTML = `
     <div class="grab"></div>
-    <div class="shead">
+    <div class="shead t-${draft.type}">
       ${tile(draft, isArtist ? 'round' : '')}
       <div>
         <h2>${esc(draft.name)}</h2>
@@ -1019,7 +1111,7 @@ function openSheet(rec, existing){
       ${existing ? '<button class="btn d" id="rm">Delete</button>' : ''}
     </div>`;
   $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
-  $('#sheet').scrollTop = 0; delete $('#sheet').dataset.crate;
+  $('#sheet').scrollTop = 0; delete $('#sheet').dataset.openk;
 
   $('#rate').onclick = ev => {
     const n = ev.target.dataset.n; if(!n) return;
@@ -1079,7 +1171,7 @@ $('#sclear').onclick = () => {
 
 function resultRow(r, i){
   const on = logged.has(key(r));
-  return `<div class="res">${tile(r, r.type==='artist'?'round':'')}
+  return `<div class="res t-${r.type}">${tile(r, r.type==='artist'?'round':'')}
     <div class="m"><b>${esc(r.name)}</b>
       ${r.type!=='artist' ? `<i>${esc(r.artist)}</i>` : ''}
       <em>${esc(r.genre)}${r.year ? ' · '+esc(r.year) : ''}</em></div>
@@ -1161,7 +1253,7 @@ async function discover(){
       .filter((r,i,a) => a.findIndex(x => key(x) === key(r)) === i)
       .slice(0,20);
     out.innerHTML = dhits.length
-      ? dhits.map((r,i) => `<div class="res">${tile(r)}
+      ? dhits.map((r,i) => `<div class="res t-${r.type}">${tile(r)}
           <div class="m"><b>${esc(r.name)}</b><i>${esc(r.artist)}</i>
             <em>${esc(r.genre)}</em></div>
           <div class="acts">
@@ -1217,22 +1309,24 @@ document.body.addEventListener('click', e => {
     shelf = shelf.filter(s => s.k !== d.shelfRm); saveShelf(); drawShelf(); openCrate('later');
   }
   else if(d.edit){
-    editing = d.edit;
-    if(!pins[editing]) pins[editing] = top5(editing, crates().find(c=>c.k===editing).f).map(x=>x.id);
-    savePins(); openCrate(editing);
+    editing = d.edit; editQ = '';
+    openCrate(editing);
   }
-  else if(d.editdone){ const k = $('#sheet').dataset.crate; editing = null; openCrate(k) }
-  else if(d.editreset){ delete pins[d.editreset]; savePins(); editing = null;
-                        drawShelf(); openCrate(d.editreset); toast('Back to automatic') }
+  else if(d.editdone){ const k = $('#sheet').dataset.openk; editing = null; openCrate(k) }
   else if(d.mv){
     const [op, arg] = d.mv.split(':');
-    const k = $('#sheet').dataset.crate; const arr = pins[k] || [];
+    const k = $('#sheet').dataset.openk;
+    const c = crates().find(x => x.k === k); if(!c) return;
+    const arr = pins[k] || [];
     const i = +arg;
     if(op === 'up' && i > 0)                 [arr[i-1], arr[i]] = [arr[i], arr[i-1]];
     else if(op === 'dn' && i < arr.length-1) [arr[i+1], arr[i]] = [arr[i], arr[i+1]];
     else if(op === 'rm')                     arr.splice(i,1);
-    else if(op === 'ad' && arr.length < 5 && !arr.includes(arg)) arr.push(arg);
-    pins[k] = arr; savePins(); drawShelf(); openCrate(k);
+    else if(op === 'ad'){
+      if(arr.length >= 5){ toast('That crate is full — remove one first'); return }
+      if(!arr.includes(arg)) arr.push(arg);
+    }
+    pins[k] = arr; savePins(); drawShelf(); refreshEdit(k, c.f);
   }
 });
 
@@ -1251,7 +1345,7 @@ function drawRail(){
   if(!railRecs.length) return;
   $('#railwrap').style.display = 'block';
   $('#rail').innerHTML = railRecs.map((r,i) => `
-    <button class="rchip" data-rail="${i}" style="animation-delay:${i*28}ms">
+    <button class="rchip t-song" data-rail="${i}" style="animation-delay:${i*28}ms">
       ${tile(r)}
       <b>${esc(r.name)}</b><i>${esc(r.artist)}</i></button>`).join('');
 }
