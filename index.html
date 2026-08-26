@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Crateside</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#171310">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Crateside">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;600&family=Karla:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CRATESIDE — tokens
+   base    #171310  deep warm brown-black (a dim listening room)
+   raised  #221C17  surface
+   line    #332A22  hairline
+   paper   #E8DCC8  warm paper (primary text)
+   dim     #8A7A6A  secondary text
+   brass   #B8895A  primary accent — notches, active states
+   teal    #7A9E9F  live data from Spotify (cool against the brass)
+   ============================================================ */
+:root{
+  --base:#171310; --raised:#221C17; --line:#332A22;
+  --paper:#E8DCC8; --dim:#8A7A6A; --brass:#B8895A; --teal:#7A9E9F;
+  --red:#B85A4F;
+  --display:'Oswald',system-ui,sans-serif;
+  --body:'Karla',system-ui,sans-serif;
+  --mono:'Space Mono',ui-monospace,monospace;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--base); color:var(--paper);
+  font-family:var(--body); font-size:15px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
+input,textarea{font:inherit;color:inherit;background:none;border:none;outline:none}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:2px}
+
+/* ---------- chrome ---------- */
+#top{
+  position:sticky;top:0;z-index:40;
+  padding:calc(var(--safe-t) + 14px) 18px 12px;
+  background:linear-gradient(var(--base) 72%,transparent);
+  display:flex;align-items:baseline;gap:10px;
+}
+.wordmark{
+  font-family:var(--display);font-weight:600;font-size:19px;
+  letter-spacing:.16em;text-transform:uppercase;
+}
+.wordmark span{color:var(--brass)}
+#count{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em;flex:1}
+#gear{font-size:17px;color:var(--dim);padding:4px 2px;align-self:center}
+
+main{padding:0 18px 120px;max-width:640px;margin:0 auto}
+.pane{display:none}
+.pane.on{display:block;animation:rise .22s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);
+  margin:22px 0 10px;display:flex;align-items:center;gap:9px;
+}
+.eyebrow::after{content:'';flex:1;height:1px;background:var(--line)}
+
+/* ---------- the rail: recently played from Spotify ---------- */
+#rail{display:flex;gap:9px;overflow-x:auto;padding:2px 18px 4px;margin:0 -18px;scrollbar-width:none}
+#rail::-webkit-scrollbar{display:none}
+.rchip{
+  flex:0 0 auto;width:98px;text-align:left;
+  animation:rise .3s ease-out backwards;
+}
+.rchip img{width:98px;height:98px;border-radius:3px;display:block;background:var(--raised)}
+.rchip b{
+  display:block;font-family:var(--display);font-weight:500;font-size:12px;
+  line-height:1.25;margin-top:6px;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.rchip i{display:block;font-style:normal;font-size:11px;color:var(--dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rchip:active{opacity:.6}
+
+/* ---------- SIGNATURE: the spine ----------
+   Each logged record renders as a band you flip past,
+   the way a crate reads from above. Tap to pull it out. */
+.spine{
+  display:flex;align-items:stretch;gap:0;
+  background:var(--raised);
+  border-left:3px solid var(--brass);
+  border-radius:2px;
+  margin-bottom:5px;width:100%;text-align:left;
+  overflow:hidden;position:relative;
+  transition:transform .16s ease,background .16s ease;
+}
+.spine:active{transform:translateX(5px);background:#2A231C}
+.spine .lab{width:52px;height:52px;flex:0 0 52px;background:var(--base);object-fit:cover}
+.spine .txt{flex:1;min-width:0;padding:8px 10px;display:flex;flex-direction:column;justify-content:center}
+.spine .ttl{
+  font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.02em;
+  line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.spine .art{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spine .side{
+  flex:0 0 auto;padding:0 11px 0 6px;display:flex;flex-direction:column;
+  align-items:flex-end;justify-content:center;gap:4px;
+}
+.spine .when{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.04em}
+
+/* notches — the rating, read as marks cut into the spine edge */
+.notches{display:flex;gap:1.5px;align-items:flex-end;height:11px}
+.notch{width:2.5px;height:5px;background:#4A3E32;border-radius:.5px}
+.notch.f{background:var(--brass);height:11px}
+.notches.lg{height:26px;gap:4px}
+.notches.lg .notch{width:6px;height:12px;border-radius:1px}
+.notches.lg .notch.f{height:26px}
+
+.daymark{
+  font-family:var(--mono);font-size:10px;color:var(--dim);
+  letter-spacing:.1em;text-transform:uppercase;margin:16px 0 7px;
+}
+
+/* ---------- search ---------- */
+#sbar{
+  display:flex;align-items:center;gap:9px;background:var(--raised);
+  border:1px solid var(--line);border-radius:3px;padding:11px 13px;margin-top:4px;
+}
+#sbar:focus-within{border-color:var(--brass)}
+#q{flex:1;font-size:16px}
+#q::placeholder{color:var(--dim)}
+#sclear{color:var(--dim);font-size:16px;padding:0 2px;display:none}
+
+.res{display:flex;gap:11px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.res img{width:54px;height:54px;border-radius:2px;flex:0 0 54px;background:var(--raised)}
+.res .m{flex:1;min-width:0}
+.res .m b{display:block;font-family:var(--display);font-weight:500;font-size:14px;line-height:1.25;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.res .m i{font-style:normal;font-size:12px;color:var(--dim);display:block;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res .m em{font-family:var(--mono);font-style:normal;font-size:10px;color:var(--dim)}
+.acts{display:flex;gap:6px;flex:0 0 auto}
+.mini{
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  border:1px solid var(--line);border-radius:2px;padding:7px 9px;color:var(--dim);
+}
+.mini.go{border-color:var(--brass);color:var(--brass)}
+.mini:active{background:var(--line)}
+.mini.done{border-color:var(--teal);color:var(--teal)}
+
+/* ---------- sheet ---------- */
+#scrim{position:fixed;inset:0;background:rgba(8,6,5,.72);z-index:60;display:none;
+  backdrop-filter:blur(2px)}
+#scrim.on{display:block;animation:fade .18s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+#sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:61;
+  background:var(--raised);border-top:2px solid var(--brass);
+  border-radius:10px 10px 0 0;
+  padding:20px 20px calc(22px + var(--safe-b));
+  max-height:88vh;overflow-y:auto;display:none;
+  max-width:640px;margin:0 auto;
+}
+#sheet.on{display:block;animation:up .24s cubic-bezier(.2,.8,.3,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+.grab{width:34px;height:3px;background:var(--line);border-radius:2px;margin:-8px auto 16px}
+.shead{display:flex;gap:13px;margin-bottom:18px}
+.shead img{width:88px;height:88px;border-radius:3px;flex:0 0 88px;background:var(--base)}
+.shead h2{font-family:var(--display);font-weight:500;font-size:19px;line-height:1.2;margin:0 0 3px}
+.shead p{margin:0;color:var(--dim);font-size:13px}
+.shead em{font-family:var(--mono);font-style:normal;font-size:10px;color:var(--dim);
+  display:block;margin-top:5px;letter-spacing:.06em}
+.field{margin-bottom:16px}
+.flabel{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:8px;display:flex;justify-content:space-between}
+#rate .notch{cursor:pointer;transition:height .1s ease,background .1s ease}
+#note{width:100%;min-height:78px;background:var(--base);border:1px solid var(--line);
+  border-radius:3px;padding:11px;resize:vertical;font-size:15px}
+#note:focus{border-color:var(--brass)}
+#note::placeholder{color:var(--dim)}
+#when{background:var(--base);border:1px solid var(--line);border-radius:3px;
+  padding:10px;font-family:var(--mono);font-size:13px;width:100%}
+.row{display:flex;gap:9px;margin-top:20px}
+.btn{
+  flex:1;font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.1em;
+  text-transform:uppercase;padding:14px;border-radius:3px;text-align:center;
+}
+.btn.p{background:var(--brass);color:#171310}
+.btn.p:active{background:#A5784C}
+.btn.s{border:1px solid var(--line);color:var(--dim)}
+.btn.d{border:1px solid var(--red);color:var(--red);flex:0 0 auto;padding:14px 18px}
+
+/* ---------- nav ---------- */
+#nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  display:flex;background:rgba(23,19,16,.94);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);padding-bottom:var(--safe-b);
+}
+#nav button{
+  flex:1;padding:12px 4px 11px;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--dim);
+  border-top:2px solid transparent;margin-top:-1px;
+}
+#nav button.on{color:var(--brass);border-top-color:var(--brass)}
+
+/* ---------- misc ---------- */
+.empty{padding:40px 6px;color:var(--dim);font-size:14px;line-height:1.6}
+.empty b{display:block;font-family:var(--display);font-weight:500;font-size:16px;
+  color:var(--paper);letter-spacing:.03em;margin-bottom:6px}
+.note{font-size:12.5px;color:var(--dim);line-height:1.55}
+.note code{font-family:var(--mono);font-size:11px;color:var(--brass);
+  background:var(--base);padding:2px 5px;border-radius:2px;word-break:break-all}
+.set{border-bottom:1px solid var(--line);padding:15px 0}
+.set:last-child{border:0}
+.set h3{font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.06em;
+  text-transform:uppercase;margin:0 0 7px}
+#toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + var(--safe-b));
+  background:var(--paper);color:var(--base);font-family:var(--mono);font-size:11px;
+  letter-spacing:.06em;padding:9px 15px;border-radius:2px;z-index:70;
+  opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;
+}
+#toast.on{opacity:1}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--line);display:inline-block;
+  vertical-align:middle;margin-right:5px}
+.dot.live{background:var(--teal)}
+.spin{display:inline-block;width:11px;height:11px;border:1.5px solid var(--line);
+  border-top-color:var(--brass);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <div class="wordmark">Crate<span>side</span></div>
+  <div id="count"></div>
+  <button id="gear" aria-label="Settings">⚙</button>
+</div>
+
+<main>
+  <!-- LOG -->
+  <section class="pane on" id="p-log">
+    <div id="railwrap" style="display:none">
+      <div class="eyebrow"><span class="dot live"></span>Played recently</div>
+      <div id="rail"></div>
+    </div>
+    <div class="eyebrow">The crate</div>
+    <div id="diary"></div>
+  </section>
+
+  <!-- FIND -->
+  <section class="pane" id="p-find">
+    <div id="sbar">
+      <input id="q" placeholder="Album or artist" autocomplete="off"
+             autocorrect="off" spellcheck="false" enterkeyhint="search">
+      <button id="sclear" aria-label="Clear">✕</button>
+    </div>
+    <div id="results"></div>
+  </section>
+
+  <!-- SHELF (listen later) -->
+  <section class="pane" id="p-shelf">
+    <div class="eyebrow">On the shelf</div>
+    <div id="shelf"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="pane" id="p-set">
+    <div class="eyebrow">Settings</div>
+
+    <div class="set">
+      <h3>Spotify</h3>
+      <div id="spstate" class="note"></div>
+      <div class="row"><button class="btn s" id="spbtn">Connect</button></div>
+    </div>
+
+    <div class="set">
+      <h3>Redirect URI</h3>
+      <p class="note">Paste this into your app's settings on the Spotify dashboard, exactly as shown.</p>
+      <p class="note" style="margin-top:8px"><code id="ruri"></code></p>
+    </div>
+
+    <div class="set">
+      <h3>Your records</h3>
+      <p class="note">Everything lives on this device only. Export before you clear Safari data or switch phones.</p>
+      <div class="row">
+        <button class="btn s" id="exp">Export</button>
+        <button class="btn s" id="imp">Import</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav id="nav">
+  <button data-p="log" class="on">Log</button>
+  <button data-p="find">Find</button>
+  <button data-p="shelf">Shelf</button>
+</nav>
+
+<div id="scrim"></div>
+<div id="sheet"></div>
+<div id="toast"></div>
+<input type="file" id="fileimp" accept="application/json" style="display:none">
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   CONFIG — the only thing you need to edit
+   ══════════════════════════════════════════════════════════════ */
+const CLIENT_ID = '';   // ← paste your Spotify Client ID here
+
+const SCOPES = 'user-read-recently-played user-read-currently-playing';
+const REDIRECT = location.origin + location.pathname;
+const $ = s => document.querySelector(s);
+
+/* ── storage ────────────────────────────────────────────────── */
+const DB = {
+  get(k, d){ try { return JSON.parse(localStorage.getItem('ck.'+k)) ?? d } catch { return d } },
+  set(k, v){ localStorage.setItem('ck.'+k, JSON.stringify(v)) },
+  del(k){ localStorage.removeItem('ck.'+k) }
+};
+let entries = DB.get('entries', []);
+let shelf   = DB.get('shelf', []);
+const save  = () => { DB.set('entries', entries); DB.set('shelf', shelf) };
+
+function toast(m){
+  const t = $('#toast'); t.textContent = m; t.classList.add('on');
+  clearTimeout(t._x); t._x = setTimeout(()=>t.classList.remove('on'), 1700);
+}
+const esc = s => String(s??'').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ── PKCE ───────────────────────────────────────────────────── */
+function randStr(n){
+  const cs='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  return Array.from(crypto.getRandomValues(new Uint8Array(n)), b=>cs[b%cs.length]).join('');
+}
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf)))
+  .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+
+async function challenge(v){
+  return b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)));
+}
+
+async function spotifyLogin(){
+  if(!CLIENT_ID){ toast('Add your Client ID first'); return }
+  const v = randStr(64);
+  const state = randStr(16);
+  sessionStorage.setItem('ck.v', v);
+  sessionStorage.setItem('ck.state', state);
+  const p = new URLSearchParams({
+    client_id: CLIENT_ID, response_type:'code', redirect_uri:REDIRECT,
+    code_challenge_method:'S256', code_challenge: await challenge(v),
+    scope: SCOPES, state
+  });
+  location.href = 'https://accounts.spotify.com/authorize?' + p;
+}
+
+async function tokenReq(body){
+  const r = await fetch('https://accounts.spotify.com/api/token',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body: new URLSearchParams(body)
+  });
+  if(!r.ok) throw new Error('token ' + r.status);
+  return r.json();
+}
+
+function storeTok(t){
+  const cur = DB.get('tok', {});
+  DB.set('tok', {
+    access: t.access_token,
+    refresh: t.refresh_token || cur.refresh,
+    exp: Date.now() + (t.expires_in - 60) * 1000   // renew a minute early
+  });
+}
+
+/* Handle the ?code= bounce-back from Spotify */
+async function handleCallback(){
+  const u = new URLSearchParams(location.search);
+  const code = u.get('code');
+  if(u.get('error')){
+    history.replaceState({}, '', REDIRECT);
+    toast('Spotify sign-in cancelled'); return;
+  }
+  if(!code) return;
+  const v = sessionStorage.getItem('ck.v');
+  if(u.get('state') !== sessionStorage.getItem('ck.state') || !v){
+    history.replaceState({}, '', REDIRECT);
+    toast("Sign-in didn't verify. Try again."); return;
+  }
+  history.replaceState({}, '', REDIRECT);
+  try{
+    storeTok(await tokenReq({
+      grant_type:'authorization_code', code, redirect_uri:REDIRECT,
+      client_id:CLIENT_ID, code_verifier:v
+    }));
+    sessionStorage.removeItem('ck.v'); sessionStorage.removeItem('ck.state');
+    toast('Spotify connected');
+  }catch(e){
+    toast('Spotify sign-in failed');
+  }
+}
+
+/* Always go through here — refreshes silently when the hour is up */
+async function token(){
+  const t = DB.get('tok', null);
+  if(!t) return null;
+  if(Date.now() < t.exp) return t.access;
+  if(!t.refresh){ DB.del('tok'); return null }
+  try{
+    storeTok(await tokenReq({
+      grant_type:'refresh_token', refresh_token:t.refresh, client_id:CLIENT_ID
+    }));
+    return DB.get('tok').access;
+  }catch{
+    DB.del('tok'); return null;
+  }
+}
+
+async function api(path){
+  const a = await token();
+  if(!a) return null;
+  const r = await fetch('https://api.spotify.com/v1' + path, {
+    headers:{ Authorization:'Bearer ' + a }
+  });
+  if(r.status === 401){ DB.del('tok'); return null }
+  if(r.status === 403){ throw new Error('403') }
+  if(!r.ok) return null;
+  return r.json();
+}
+
+/* ── iTunes catalogue (JSONP — the endpoint sends no CORS header) ── */
+function itunes(term){
+  return new Promise((res, rej) => {
+    const cb = 'ck' + randStr(8).replace(/[^a-z0-9]/gi,'');
+    const s  = document.createElement('script');
+    const done = fn => { delete window[cb]; clearTimeout(timer); s.remove(); fn() };
+    const timer = setTimeout(() => done(() => rej(new Error('timeout'))), 9000);
+    window[cb] = d => done(() => res(d.results || []));
+    s.onerror  = () => done(() => rej(new Error('offline')));
+    s.src = 'https://itunes.apple.com/search?media=music&entity=album&limit=25'
+          + '&term=' + encodeURIComponent(term) + '&callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+const big = url => (url||'').replace(/\/\d+x\d+bb\./, '/600x600bb.');
+
+/* ── record shape ───────────────────────────────────────────── */
+const key = r => (r.artist + '|' + r.album).toLowerCase().replace(/\s+/g,'');
+const fromItunes = a => ({
+  album:a.collectionName, artist:a.artistName,
+  art:big(a.artworkUrl100), year:(a.releaseDate||'').slice(0,4)
+});
+const fromSpotify = al => ({
+  album:al.name, artist:al.artists.map(x=>x.name).join(', '),
+  art:(al.images?.[0]||{}).url || '', year:(al.release_date||'').slice(0,4)
+});
+
+/* ── notches ────────────────────────────────────────────────── */
+function marks(rating){
+  let h = '';
+  for(let i=1;i<=10;i++) h += `<div class="notch${i<=rating*2?' f':''}" data-n="${i}"></div>`;
+  return h;
+}
+const notches = (rating, cls='') => `<div class="notches ${cls}">${marks(rating)}</div>`;
+
+/* ── the diary ──────────────────────────────────────────────── */
+const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function label(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  const t  = new Date(); t.setHours(0,0,0,0);
+  const gap = Math.round((t - dt)/864e5);
+  if(gap === 0) return 'Today';
+  if(gap === 1) return 'Yesterday';
+  if(gap < 7)   return DAY[dt.getDay()];
+  return `${MON[m-1]} ${d}` + (y !== t.getFullYear() ? ` ${y}` : '');
+}
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+
+function spine(e){
+  return `<button class="spine" data-id="${e.id}">
+    <img class="lab" src="${esc(e.art)}" alt="" loading="lazy">
+    <span class="txt">
+      <span class="ttl">${esc(e.album)}</span>
+      <span class="art">${esc(e.artist)}</span>
+    </span>
+    <span class="side">
+      ${notches(e.rating)}
+      ${e.note ? '<span class="when">noted</span>' : ''}
+    </span>
+  </button>`;
+}
+
+function drawDiary(){
+  const el = $('#diary');
+  if(!entries.length){
+    el.innerHTML = `<div class="empty"><b>Nothing logged yet</b>
+      Find a record and rate it. Once a few are in, this becomes a crate you can flip back through.</div>`;
+    $('#count').textContent = ''; return;
+  }
+  const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
+  let out = '', last = '';
+  for(const e of sorted){
+    if(e.date !== last){ out += `<div class="daymark">${label(e.date)}</div>`; last = e.date }
+    out += spine(e);
+  }
+  el.innerHTML = out;
+  const yr = String(new Date().getFullYear());
+  const n  = entries.filter(e => e.date.startsWith(yr)).length;
+  $('#count').textContent = `${entries.length} logged · ${n} this year`;
+}
+
+function drawShelf(){
+  const el = $('#shelf');
+  if(!shelf.length){
+    el.innerHTML = `<div class="empty"><b>The shelf is empty</b>
+      Records you want to get to later go here. Add one from Find.</div>`;
+    return;
+  }
+  el.innerHTML = shelf.map(r => `<div class="res">
+      <img src="${esc(r.art)}" alt="" loading="lazy">
+      <div class="m"><b>${esc(r.album)}</b><i>${esc(r.artist)}</i></div>
+      <div class="acts">
+        <button class="mini go" data-shelf-log="${esc(r.k)}">Log</button>
+        <button class="mini" data-shelf-rm="${esc(r.k)}">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ── the sheet ──────────────────────────────────────────────── */
+let draft = null;
+function openSheet(rec, existing){
+  draft = existing
+    ? {...existing}
+    : {id:'e'+Date.now()+randStr(4), ...rec, rating:0, note:'', date:today(), created:Date.now()};
+  $('#sheet').innerHTML = `
+    <div class="grab"></div>
+    <div class="shead">
+      <img src="${esc(draft.art)}" alt="">
+      <div>
+        <h2>${esc(draft.album)}</h2>
+        <p>${esc(draft.artist)}</p>
+        ${draft.year ? `<em>${esc(draft.year)}</em>` : ''}
+      </div>
+    </div>
+    <div class="field">
+      <div class="flabel"><span>Rating</span><span id="rnum">${draft.rating ? draft.rating.toFixed(1) : '—'}</span></div>
+      <div id="rate" class="notches lg">${marks(draft.rating)}</div>
+    </div>
+    <div class="field">
+      <div class="flabel"><span>Note</span></div>
+      <textarea id="note" placeholder="What did it do to you?">${esc(draft.note)}</textarea>
+    </div>
+    <div class="field">
+      <div class="flabel"><span>Listened on</span></div>
+      <input type="date" id="when" value="${draft.date}" max="${today()}">
+    </div>
+    <div class="row">
+      <button class="btn p" id="ok">${existing ? 'Save' : 'Log it'}</button>
+      ${existing ? '<button class="btn d" id="rm">Delete</button>' : ''}
+    </div>`;
+  $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
+
+  $('#rate').onclick = ev => {
+    const n = ev.target.dataset.n; if(!n) return;
+    const v = +n / 2;
+    draft.rating = (draft.rating === v) ? 0 : v;   // tap the same notch again to clear
+    $('#rate').innerHTML = marks(draft.rating);
+    $('#rnum').textContent = draft.rating ? draft.rating.toFixed(1) : '—';
+  };
+  $('#ok').onclick = () => {
+    draft.note = $('#note').value.trim();
+    draft.date = $('#when').value || today();
+    const i = entries.findIndex(e => e.id === draft.id);
+    if(i >= 0) entries[i] = draft; else entries.unshift(draft);
+    save(); drawDiary(); closeSheet();
+    toast(i >= 0 ? 'Saved' : 'Logged');
+  };
+  if(existing){
+    let armed = false;
+    const rm = $('#rm');
+    rm.onclick = () => {
+      if(!armed){                       // one tap arms it, the next one does it
+        armed = true; rm.textContent = 'Sure?';
+        setTimeout(() => { armed = false; rm.textContent = 'Delete' }, 3000);
+        return;
+      }
+      entries = entries.filter(e => e.id !== draft.id);
+      save(); drawDiary(); closeSheet(); toast('Deleted');
+    };
+  }
+}
+function closeSheet(){
+  $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); draft = null;
+}
+$('#scrim').onclick = closeSheet;
+
+/* ── search ─────────────────────────────────────────────────── */
+let hits = [], tmr;
+$('#q').oninput = e => {
+  $('#sclear').style.display = e.target.value ? 'block' : 'none';
+  clearTimeout(tmr);
+  const term = e.target.value.trim();
+  if(term.length < 2){ $('#results').innerHTML = ''; return }
+  tmr = setTimeout(() => runSearch(term), 330);
+};
+$('#sclear').onclick = () => {
+  $('#q').value = ''; $('#sclear').style.display = 'none';
+  $('#results').innerHTML = ''; $('#q').focus();
+};
+
+async function runSearch(term){
+  $('#results').innerHTML = `<div class="empty"><span class="spin"></span></div>`;
+  try{
+    const raw = await itunes(term);
+    hits = raw.map(fromItunes).filter(r => r.album && r.artist);
+    if(!hits.length){
+      $('#results').innerHTML = `<div class="empty"><b>No records found</b>
+        Try the artist's name on its own, or check the spelling.</div>`;
+      return;
+    }
+    $('#results').innerHTML = hits.map((r,i) => `<div class="res">
+        <img src="${esc(r.art)}" alt="" loading="lazy">
+        <div class="m"><b>${esc(r.album)}</b><i>${esc(r.artist)}</i>
+          ${r.year ? `<em>${esc(r.year)}</em>` : ''}</div>
+        <div class="acts">
+          <button class="mini go" data-log="${i}">Log</button>
+          <button class="mini" data-shelf="${i}">Shelf</button>
+        </div>
+      </div>`).join('');
+  }catch{
+    $('#results').innerHTML = `<div class="empty"><b>Search didn't go through</b>
+      You may be offline. Try again in a moment.</div>`;
+  }
+}
+
+/* ── Spotify rail ───────────────────────────────────────────── */
+let railRecs = [];
+async function loadRail(){
+  if(!DB.get('tok', null)) return;
+  let d;
+  try{ d = await api('/me/player/recently-played?limit=50') }
+  catch{ return }
+  if(!d || !d.items) return;
+  const seen = new Set(); railRecs = [];
+  for(const it of d.items){
+    const al = it.track?.album; if(!al) continue;
+    const r = fromSpotify(al); const k = key(r);
+    if(seen.has(k)) continue;
+    seen.add(k); railRecs.push(r);
+    if(railRecs.length === 12) break;
+  }
+  if(!railRecs.length) return;
+  $('#railwrap').style.display = 'block';
+  $('#rail').innerHTML = railRecs.map((r,i) => `
+    <button class="rchip" data-rail="${i}" style="animation-delay:${i*28}ms">
+      <img src="${esc(r.art)}" alt="" loading="lazy">
+      <b>${esc(r.album)}</b><i>${esc(r.artist)}</i>
+    </button>`).join('');
+}
+
+/* Artwork that 404s or dies offline should just leave a quiet square,
+   not a broken-image icon. Capture phase — img errors don't bubble. */
+document.body.addEventListener('error', e => {
+  if(e.target.tagName === 'IMG') e.target.style.visibility = 'hidden';
+}, true);
+
+/* ── delegated taps ─────────────────────────────────────────── */
+document.body.addEventListener('click', e => {
+  const t = e.target.closest('[data-id],[data-log],[data-shelf],[data-rail],[data-shelf-log],[data-shelf-rm]');
+  if(!t) return;
+  const d = t.dataset;
+  if(d.id){
+    const en = entries.find(x => x.id === d.id);
+    if(en) openSheet(null, en);
+  }
+  else if(d.log !== undefined) openSheet(hits[+d.log]);
+  else if(d.rail !== undefined) openSheet(railRecs[+d.rail]);
+  else if(d.shelf !== undefined){
+    const r = hits[+d.shelf], k = key(r);
+    if(shelf.some(s => s.k === k)){ toast('Already on the shelf'); return }
+    shelf.unshift({...r, k, added:Date.now()}); save();
+    t.textContent = 'On shelf'; t.classList.add('done');
+    drawShelf();
+  }
+  else if(d.shelfLog){
+    const r = shelf.find(s => s.k === d.shelfLog);
+    if(r) openSheet({album:r.album, artist:r.artist, art:r.art, year:r.year});
+  }
+  else if(d.shelfRm){
+    shelf = shelf.filter(s => s.k !== d.shelfRm); save(); drawShelf();
+  }
+});
+
+/* ── nav ────────────────────────────────────────────────────── */
+function go(p){
+  document.querySelectorAll('.pane').forEach(x => x.classList.toggle('on', x.id === 'p-'+p));
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+  window.scrollTo(0,0);
+  if(p === 'find') setTimeout(() => $('#q').focus(), 90);
+  if(p === 'shelf') drawShelf();
+}
+$('#nav').onclick = e => { const b = e.target.closest('button'); if(b) go(b.dataset.p) };
+$('#gear').onclick = () => {
+  document.querySelectorAll('.pane').forEach(x => x.classList.toggle('on', x.id === 'p-set'));
+  document.querySelectorAll('#nav button').forEach(b => b.classList.remove('on'));
+  drawSettings(); window.scrollTo(0,0);
+};
+
+/* ── settings ───────────────────────────────────────────────── */
+function drawSettings(){
+  $('#ruri').textContent = REDIRECT;
+  const on = !!DB.get('tok', null);
+  $('#spstate').innerHTML = !CLIENT_ID
+    ? '<span class="dot"></span>No Client ID yet. Open this file and paste yours into the CONFIG block at the top.'
+    : on ? '<span class="dot live"></span>Connected. Your recent plays show up on the Log tab.'
+         : '<span class="dot"></span>Not connected. Connecting adds a one-tap row of what you just played.';
+  $('#spbtn').textContent = on ? 'Disconnect' : 'Connect';
+  $('#spbtn').onclick = on
+    ? () => { DB.del('tok'); $('#railwrap').style.display='none'; drawSettings(); toast('Disconnected') }
+    : spotifyLogin;
+}
+
+$('#exp').onclick = () => {
+  const blob = new Blob([JSON.stringify({v:1, entries, shelf}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `crateside-${today()}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$('#imp').onclick = () => $('#fileimp').click();
+$('#fileimp').onchange = ev => {
+  const f = ev.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const d = JSON.parse(rd.result);
+      if(!Array.isArray(d.entries)) throw 0;
+      const have = new Set(entries.map(e => e.id));
+      entries = [...entries, ...d.entries.filter(e => !have.has(e.id))];
+      if(Array.isArray(d.shelf)){
+        const hs = new Set(shelf.map(s => s.k));
+        shelf = [...shelf, ...d.shelf.filter(s => !hs.has(s.k))];
+      }
+      save(); drawDiary(); drawShelf();
+      toast(`Imported ${d.entries.length}`);
+    }catch{ toast("That file isn't a Crateside export") }
+  };
+  rd.readAsText(f); ev.target.value = '';
+};
+
+/* ── boot ───────────────────────────────────────────────────── */
+(async () => {
+  await handleCallback();
+  drawDiary(); drawShelf(); drawSettings();
+  loadRail();
+  if('serviceWorker' in navigator)
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
