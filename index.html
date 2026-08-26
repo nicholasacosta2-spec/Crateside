@@ -516,7 +516,7 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
 
     <div class="set">
       <h3>Catalogue</h3>
-      <p class="note" id="catstate">Search asks Spotify, iTunes and MusicBrainz at once and merges what comes back.</p>
+      <p class="note" id="catstate">Search asks Spotify and MusicBrainz at once and merges what comes back. It tries iTunes too, though Apple no longer serves that endpoint in a form web apps can use.</p>
       <div class="row"><button class="btn s" id="cattest">Run a check</button></div>
     </div>
 
@@ -874,7 +874,7 @@ async function spSearch(term, entity){
 
 /* Which sources answered last — shown under the gear. */
 let catSources = [];
-let itunesMisses = 0;
+let itunesMisses = DB.get('itunesOff', false) ? 9 : 0;
 
 /* ══ one search, every catalogue ═══════════════════════════════
    No single source covers everything: Spotify ranks best but only
@@ -896,7 +896,10 @@ async function searchIT(term, entity, limit=25){
   const settled = await Promise.allSettled(src.map(([, f]) => f()));
 
   const iAt = src.findIndex(x => x[0] === 'iTunes');
-  if(iAt >= 0) itunesMisses = settled[iAt].status === 'fulfilled' ? 0 : itunesMisses + 1;
+  if(iAt >= 0){
+    if(settled[iAt].status === 'fulfilled'){ itunesMisses = 0; DB.del('itunesOff') }
+    else if(++itunesMisses >= 2) DB.set('itunesOff', true);
+  }
 
   const out = [], at = new Map();
   catSources = [];
@@ -2159,25 +2162,6 @@ $('#cattest').onclick = async () => {
   out.innerHTML = '<span class="spin"></span> Checking…';
   const lines = [];
 
-  // Apple over a script tag
-  try{
-    await jsonp({ path:'search', q:{ media:'music', entity:'album', limit:1, term:'miles davis' } });
-    lines.push('<span class="dot live"></span>iTunes via script tag — working');
-  }catch(e){
-    lines.push(`<span class="dot"></span>iTunes via script tag — ${
-      e.kind === 'timeout' ? 'no answer (usually the 20-a-minute limit)' : 'blocked'}`);
-  }
-
-  // Apple over a normal request, which reports a real status
-  try{
-    const r = await fetch('https://itunes.apple.com/search?media=music&entity=album&limit=1&term=miles%20davis');
-    lines.push(r.ok ? '<span class="dot live"></span>iTunes direct — working'
-                    : `<span class="dot"></span>iTunes direct — HTTP ${r.status}${
-                        r.status === 403 ? ' (rate limited)' : ''}`);
-  }catch{
-    lines.push('<span class="dot"></span>iTunes direct — refused by the browser or blocked');
-  }
-
   // Spotify, which you're already signed in to
   if(DB.get('tok', null)){
     try{
@@ -2198,10 +2182,22 @@ $('#cattest').onclick = async () => {
     lines.push('<span class="dot"></span>MusicBrainz — unreachable');
   }
 
+  // Apple, tried honestly but not expected to work
+  itunesMisses = 0; DB.del('itunesOff');
+  try{
+    await jsonp({ path:'search', q:{ media:'music', entity:'album', limit:1, term:'miles davis' } });
+    lines.push('<span class="dot live"></span>iTunes — working');
+  }catch{
+    DB.set('itunesOff', true); itunesMisses = 9;
+    lines.push('<span class="dot"></span>iTunes — unavailable to web apps, and not something '
+      + 'you can fix. Apple serves it without CORS headers and in a form browsers refuse to '
+      + 'run as a script. Nothing to do with your network.');
+  }
+
   const live = lines.filter(l => l.includes('dot live')).length;
   lines.push(live === 0
-    ? '<br>Nothing is getting through. That points at a content blocker, a VPN, or Lockdown Mode — try Safari with those off.'
-    : `<br>${live} source${live>1?'s':''} reachable. Search merges whatever answers, so one blocked source costs you very little.`);
+    ? '<br>Nothing is getting through. Check your connection, and if you use a content blocker or VPN, try it with those off.'
+    : `<br>${live} source${live>1?'s':''} working. Search merges whatever answers, so a missing source costs you very little.`);
   out.innerHTML = lines.join('<br>');
 };
 
