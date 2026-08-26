@@ -658,21 +658,65 @@ async function syncTops(){
 /* ══ the catalogue ═════════════════════════════════════════════
    iTunes rather than Spotify: no auth, no five-user cap, and it
    still returns 25 results where Spotify's dev mode gives 10.
-   It sends no CORS header, so this goes over JSONP.
+
+   Apple allows roughly 20 searches a minute per address, and a
+   <script> tag can't tell you which failure you hit — a rate-limited
+   403 looks exactly like being offline. So: try a real fetch first
+   (which does report status), remember whether CORS worked, and fall
+   back to JSONP only if it didn't. Results are cached for the session
+   so retyping the same thing costs nothing.
    ══════════════════════════════════════════════════════════════ */
-function itunes(params){
+let catMode = null;                 // null = untested, 'fetch', 'jsonp'
+const catCache = new Map();
+
+function catErr(kind){ const e = new Error(kind); e.kind = kind; return e }
+
+const itunesURL = p => 'https://itunes.apple.com/' + p.path + '?' + new URLSearchParams(p.q);
+
+function jsonp(p){
   return new Promise((res, rej) => {
-    const cb = 'ck' + randStr(10).replace(/[^a-z0-9]/gi,'');
+    const cb = 'ck' + randStr(12).replace(/[^a-z0-9]/gi,'') + (Date.now() % 1e5);
     const s  = document.createElement('script');
     const fin = fn => { delete window[cb]; clearTimeout(timer); s.remove(); fn() };
-    const timer = setTimeout(() => fin(() => rej(new Error('timeout'))), 9000);
+    const timer = setTimeout(() => fin(() => rej(catErr('timeout'))), 10000);
     window[cb] = d => fin(() => res(d.results || []));
-    s.onerror  = () => fin(() => rej(new Error('offline')));
-    s.src = 'https://itunes.apple.com/' + params.path + '?' +
-            new URLSearchParams({ ...params.q, callback: cb });
+    s.onerror  = () => fin(() => rej(catErr('blocked')));
+    s.src = itunesURL({ path:p.path, q:{ ...p.q, callback:cb } });
     document.head.appendChild(s);
   });
 }
+
+async function itunes(p){
+  const url = itunesURL(p);
+  if(catCache.has(url)) return catCache.get(url);
+
+  let out;
+  if(catMode !== 'jsonp'){
+    try{
+      const r = await fetch(url);
+      if(r.status === 403 || r.status === 429) throw catErr('rate');
+      if(!r.ok) throw catErr('blocked');
+      out = (await r.json()).results || [];
+      catMode = 'fetch';
+    }catch(e){
+      if(e.kind === 'rate') throw e;
+      catMode = 'jsonp';               // CORS refused — script tags from here on
+    }
+  }
+  if(out === undefined) out = await jsonp(p);
+
+  catCache.set(url, out);
+  if(catCache.size > 80) catCache.delete(catCache.keys().next().value);
+  return out;
+}
+
+const CATMSG = {
+  rate:    "Apple limits this to about 20 searches a minute. Give it a minute and try again.",
+  timeout: "The catalogue didn't answer. That's usually Apple's 20-per-minute limit — wait a moment and try again.",
+  blocked: "Couldn't reach the catalogue. Check your connection, or wait a minute if you've been searching a lot — Apple caps it at about 20 a minute."
+};
+const catMsg = e => CATMSG[e && e.kind] || CATMSG.blocked;
+
 const searchIT = (term, entity, limit=25) =>
   itunes({ path:'search', q:{ media:'music', entity, limit, term } });
 const lookupIT = (id, entity, limit=20) =>
@@ -1036,11 +1080,11 @@ function openCrate(k){
       editQ = q.value; renderCands(k, c.f);
       clearTimeout(catTmr);
       const term = editQ.trim();
-      if(term.length < 2){ catHits = []; $('#catlist').innerHTML = ''; return }
+      if(term.length < 3){ catHits = []; $('#catlist').innerHTML = ''; return }
       $('#catlist').innerHTML =
         `<div class="flabel" style="margin-top:18px"><span>From the catalogue</span>
           <span class="spin"></span></div>`;
-      catTmr = setTimeout(() => searchCat(k, c, term), 420);
+      catTmr = setTimeout(() => searchCat(k, c, term), 550);
     };
     let armed = false; const cl = $('#clearcrate');
     cl.onclick = () => {
@@ -1086,9 +1130,12 @@ async function searchCat(k, c, term){
   const el = $('#catlist'); if(!el) return;
   let raw;
   try{ raw = await searchIT(term, ENTITY[c.ent] || c.ent, 25) }
-  catch{
+  catch(e){
+    if(editing !== k) return;
     el.innerHTML = `<div class="flabel" style="margin-top:18px"><span>From the catalogue</span></div>
-      <div class="empty" style="padding:14px 4px">Couldn't reach the catalogue — you may be offline.</div>`;
+      <div class="empty" style="padding:14px 4px">${esc(catMsg(e))}
+        <div class="row" style="margin-top:12px">
+          <button class="btn s" data-catretry="1">Try again</button></div></div>`;
     return;
   }
   if(editing !== k || $('#candq')?.value.trim() !== term) return;   // moved on already
@@ -1222,7 +1269,7 @@ $('#q').oninput = e => {
   clearTimeout(tmr);
   const t = e.target.value.trim();
   if(t.length < 2){ $('#results').innerHTML = ''; return }
-  tmr = setTimeout(() => runSearch(t), 330);
+  tmr = setTimeout(() => runSearch(t), 450);
 };
 $('#sclear').onclick = () => {
   $('#q').value = ''; $('#sclear').style.display = 'none';
@@ -1252,9 +1299,10 @@ async function runSearch(term){
       ? hits.map(resultRow).join('')
       : `<div class="empty"><b>Nothing found</b>
           Try just the artist's name, or switch the tab above.</div>`;
-  }catch{
+  }catch(e){
+    if(mine !== kind) return;
     $('#results').innerHTML = `<div class="empty"><b>Search didn't go through</b>
-      You may be offline. Try again in a moment.</div>`;
+      ${esc(catMsg(e))}</div>`;
   }
 }
 
@@ -1321,9 +1369,9 @@ async function discover(){
             <button class="mini" data-dlater="${i}">Later</button></div></div>`).join('')
       : `<div class="empty"><b>Nothing new here</b>
           You've already logged everything this turned up. Try another artist or genre.</div>`;
-  }catch{
+  }catch(e){
     out.innerHTML = `<div class="empty"><b>Couldn't load suggestions</b>
-      You may be offline. Try again in a moment.</div>`;
+      ${esc(catMsg(e))}</div>`;
   }
 }
 $('#dmode').onchange = () => { fillPicker(); discover() };
@@ -1343,10 +1391,24 @@ function addLater(r){
 document.body.addEventListener('click', e => {
   const t = e.target.closest('[data-id],[data-log],[data-later],[data-rail],[data-crate],'+
     '[data-shelf-log],[data-shelf-rm],[data-edit],[data-editdone],[data-editreset],[data-mv],'+
-    '[data-dlog],[data-dlater]');
+    '[data-dlog],[data-dlater],[data-catretry]');
   if(!t) return;
   const d = t.dataset;
 
+  if(d.catretry){
+    const k = $('#sheet').dataset.openk;
+    const c = crates().find(x => x.k === k);
+    const term = ($('#candq')?.value || '').trim();
+    if(c && term.length >= 3){
+      catCache.delete(itunesURL({ path:'search',
+        q:{ media:'music', entity: ENTITY[c.ent] || c.ent, limit:25, term } }));
+      $('#catlist').innerHTML =
+        `<div class="flabel" style="margin-top:18px"><span>From the catalogue</span>
+          <span class="spin"></span></div>`;
+      searchCat(k, c, term);
+    }
+    return;
+  }
   if(d.id){ const en = entries.find(x => x.id === d.id); if(en) openSheet(null, en) }
   else if(d.log !== undefined)    openSheet(hits[+d.log]);
   else if(d.dlog !== undefined)   openSheet(dhits[+d.dlog]);
