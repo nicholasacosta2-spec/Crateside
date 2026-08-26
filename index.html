@@ -388,6 +388,14 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
 .tin::placeholder{color:var(--dim)}
 .addbar{display:flex;gap:10px;margin:14px 0 4px}
 
+/* ---------- year chart ---------- */
+.ychart{display:flex;align-items:flex-end;gap:4px;height:110px;margin-top:4px}
+.ycol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.ybar{width:100%;border-radius:3px 3px 0 0;background:linear-gradient(var(--teal),#1B6E6C);
+  transition:height .3s cubic-bezier(.2,.9,.3,1)}
+.ybar.pk{background:linear-gradient(var(--gold),var(--ember))}
+.ylab{font-family:var(--mono);font-size:8.5px;color:var(--dim);margin-top:5px}
+
 /* ---------- misc ---------- */
 .empty{padding:34px 6px;color:var(--dim);font-size:14.5px;line-height:1.65}
 .empty b{display:block;font-family:var(--display);font-size:16px;color:var(--paper);
@@ -527,6 +535,12 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
     </div>
 
     <div class="set">
+      <h3>Spotify export</h3>
+      <p class="note" id="expnote"></p>
+      <div class="row"><button class="btn s" id="impspot">Import export files</button></div>
+    </div>
+
+    <div class="set">
       <h3>Your records</h3>
       <p class="note">Everything lives on this device only. Export before you clear Safari data or switch phones.</p>
       <div class="row">
@@ -549,6 +563,7 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
 <div id="sheet"></div>
 <div id="toast"></div>
 <input type="file" id="fileimp" accept="application/json" style="display:none">
+<input type="file" id="spotimp" accept=".json,application/json" multiple style="display:none">
 <script>
 /* ══════════════════════════════════════════════════════════════
    Nothing to edit here. Enter your Spotify Client ID once under
@@ -1104,7 +1119,8 @@ function crates(){
     { k:'minpl',   t:'Minutes by Playlist', kind:'mins',  by:'playlist' },
     { k:'press',   t:'Top 5 Pressings',     kind:'wax'    },
     { k:'spun',    t:'Most Spun',           kind:'spun'   },
-    { k:'want',    t:'Wantlist',            kind:'want'   }
+    { k:'want',    t:'Wantlist',            kind:'want'   },
+    { k:'year',    t:'Year in Review',      kind:'year'   }
   ];
   for(const g of gs) list.push({ k:'g:'+g, t:g, kind:'rated', ent:'song',
                                  f:e=>e.genre===g, genre:g });
@@ -1119,6 +1135,7 @@ function crateCount(c){
   if(c.kind === 'wax')   return (pins[c.k] || []).filter(id => vinyl.some(v => v.id === id)).length;
   if(c.kind === 'spun')  return owned().filter(v => spinCount(v)).length;
   if(c.kind === 'want')  return wanted().length;
+  if(c.kind === 'year')  return Object.keys(years).length;
   return 0;
 }
 
@@ -1140,7 +1157,7 @@ const PAINT = [
   { hi:'#D9A05B', mid:'#B07830', lo:'#68441A' }    // amber
 ];
 const FIXED = { songs:0, albums:1, artists:2, later:3, week:4, month:5,
-                minart:6, minpl:7, press:8, spun:9, want:10 };
+                minart:6, minpl:7, press:8, spun:9, want:10, year:11 };
 /* Genres draw from their own set, so a genre crate can never turn up
    wearing the same paint as one of the fixed ones. */
 const GENRE_PAINT = [
@@ -1179,13 +1196,13 @@ function peek(k, filled){
 
 function drawShelf(){
   const wrap = $('#minutes');
-  const all  = totalMs(), wk = totalMs(7), mo = totalMs(30);
+  const all  = allTimeMs(), wk = totalMs(7), mo = totalMs(30);
   const h    = hrs(all);
   wrap.innerHTML = plays.length ? `
     <div class="eyebrow">Time on the needle</div>
     <div class="bigstat" style="--ac:#F3C551">
       <div class="n">${h.n}<small>${h.u}</small></div>
-      <div class="k">Since you connected Spotify</div>
+      <div class="k">${Object.keys(years).length ? "All time" : "Since you connected Spotify"}</div>
     </div>
     <div class="split">
       <div class="bigstat" style="--ac:#3FC7C4"><div class="n">${mins(wk)}<small>min</small></div><div class="k">Past 7 days</div></div>
@@ -1330,6 +1347,20 @@ function openCrate(k){
       : `<div class="empty"><b>Nothing on the wantlist</b>
           Add a record in the racks and mark it as one you're hunting for.</div>`;
 
+  } else if(c.kind === 'year'){
+    const ys = Object.keys(years).sort((a,b) => b.localeCompare(a));
+    if(!ys.length){
+      body = `<div class="empty"><b>No history imported yet</b>
+        Request your listening history from spotify.com/account/privacy — tick
+        <b style="display:inline">Extended streaming history</b> — then import the JSON files
+        under the gear. It reaches back to the day you signed up.</div>`;
+    } else {
+      if(!ys.includes(shownYear)) shownYear = ys[0];
+      body = `<div class="chips" id="yrpick">${ys.map(y =>
+        `<button class="chip${y===shownYear?' on':''}" data-yr="${esc(y)}">${esc(y)}</button>`).join('')}</div>
+        <div id="yrbody"></div>`;
+    }
+
   } else if(c.kind === 'mins'){
     const rows = minsBy(c.by);
     if(!rows.length){
@@ -1356,11 +1387,14 @@ function openCrate(k){
       : c.kind === 'wax'  ? `${(pins[k]||[]).length} of 5 chosen`
       : c.kind === 'spun' ? 'Your own turntable, not Spotify'
       : c.kind === 'want' ? `${wanted().length} on the hunt`
+      : c.kind === 'year' ? (Object.keys(years).length ? 'From your Spotify export' : 'Nothing imported')
       : `${shelf.length} waiting` }</p>
     ${body}${foot}`;
   $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
   $('#sheet').scrollTop = 0;
   $('#sheet').dataset.openk = k;
+
+  if(c.kind === 'year' && Object.keys(years).length) drawYear();
 
   if((c.kind === 'rated' || c.kind === 'wax') && editing === k){
     const q = $('#candq');
@@ -1385,6 +1419,60 @@ function openCrate(k){
     };
     refreshEdit(k, c.f, c.kind);
   }
+}
+
+/* ══ a year, read back ═════════════════════════════════════════
+   What Wrapped shows you once and then takes away, scoped to the
+   actual calendar year rather than Spotify's opaque windows.
+   ══════════════════════════════════════════════════════════════ */
+let shownYear = String(new Date().getFullYear());
+
+function drawYear(){
+  const el = $('#yrbody'); if(!el) return;
+  const y = years[shownYear]; if(!y) return;
+  const h = hrs(y.min);
+  const peak = y.months.indexOf(Math.max(...y.months));
+  const mmax = Math.max(...y.months) || 1;
+  const live = y.months.filter(v => v > 0).length;
+
+  el.innerHTML = `
+    <div class="bigstat" style="--ac:#F3C551;margin-top:16px">
+      <div class="n">${h.n}<small>${h.u}</small></div>
+      <div class="k">Listened in ${esc(shownYear)}</div>
+    </div>
+    <div class="split">
+      <div class="bigstat" style="--ac:#3FC7C4"><div class="n">${y.streams.toLocaleString()}</div>
+        <div class="k">Streams</div></div>
+      <div class="bigstat" style="--ac:#E9739F"><div class="n">${y.artists.length}${
+        y.artists.length===50?'+':''}</div><div class="k">Artists</div></div>
+    </div>
+
+    <div class="flabel" style="margin-top:22px"><span>By month</span>
+      <span>${esc(MONTHS[peak])} was busiest</span></div>
+    <div class="ychart">${y.months.map((v,i) => `
+      <span class="ycol"><span class="ybar${i===peak?' pk':''}"
+        style="height:${Math.max(2, v/mmax*100)}%"></span>
+        <span class="ylab">${MONTHS[i][0]}</span></span>`).join('')}</div>
+
+    <div class="flabel" style="margin-top:24px"><span>Top artists</span><span>By time</span></div>
+    ${y.artists.slice(0,5).map(([n,ms,c],i) => `<div class="spine t-artist">
+      <span class="rank">${i+1}</span>
+      <span class="mono lab">${esc(initial(n))}</span>
+      <span class="txt"><span class="ttl">${esc(n)}</span>
+        <span class="art">${c.toLocaleString()} plays</span></span>
+      <span class="side"><span class="when">${mins(ms)} min</span></span></div>`).join('')}
+
+    <div class="flabel" style="margin-top:22px"><span>Top songs</span><span>By time</span></div>
+    ${y.songs.slice(0,5).map(([n,a,ms,c],i) => `<div class="spine t-song">
+      <span class="rank">${i+1}</span>
+      <span class="mono lab">${esc(initial(n))}</span>
+      <span class="txt"><span class="ttl">${esc(n)}</span>
+        <span class="art">${esc(a)}</span></span>
+      <span class="side"><span class="when">${c}×</span></span></div>`).join('')}
+
+    <p class="note" style="margin-top:20px">Counted across ${live} month${live===1?'':'s'}
+      of ${esc(shownYear)}, from plays of thirty seconds or longer — the same bar Spotify
+      uses. Time is what you actually listened to, not track length.</p>`;
 }
 
 /* Edit mode updates in place so the filter box keeps focus as you type. */
@@ -1504,6 +1592,124 @@ function renderCands(k, f, kind){
       <button class="ebtn${full?'':' on'}" data-mv="ad:${esc(e.id)}"
         ${full?'disabled':''} aria-label="Add">+</button>
     </span></div>`).join('');
+}
+
+/* ══ importing your Spotify export ═════════════════════════════
+   The API only hands back your last 50 plays, so everything before
+   the day you connected is lost as far as it's concerned. The export
+   from spotify.com/account/privacy has the lot, back to sign-up.
+
+   Two formats turn up in those zips and both are handled:
+     Streaming_History_Audio_*.json / endsong_*.json  — the full record
+     StreamingHistory_music_*.json                    — the short one
+
+   A full export can run to six figures of rows, far past what a phone
+   will hold. So each year is boiled down to a summary kept for good,
+   and only the last twelve months stay as individual plays.
+   ══════════════════════════════════════════════════════════════ */
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const STREAM_MS = 30000;          // Spotify's own bar for what counts as a play
+let years = DB.get('years', {});
+const saveYears = () => DB.set('years', years);
+
+function parseExport(text){
+  let d; try{ d = JSON.parse(text) }catch{ return [] }
+  if(!Array.isArray(d)) return [];
+  const out = [];
+  for(const x of d){
+    if(x && x.ts !== undefined){                       // the full record
+      const name = x.master_metadata_track_name;
+      if(!name) continue;                              // podcasts and audiobooks
+      out.push({ ts:x.ts, name,
+        artist:x.master_metadata_album_artist_name || '',
+        album:x.master_metadata_album_album_name || '',
+        ms:x.ms_played || 0 });
+    } else if(x && x.endTime !== undefined){           // the short one
+      if(!x.trackName) continue;
+      const t = Date.parse(x.endTime.replace(' ', 'T') + ':00Z');
+      if(isNaN(t)) continue;
+      out.push({ ts:new Date(t).toISOString(), name:x.trackName,
+                 artist:x.artistName || '', album:'', ms:x.msPlayed || 0 });
+    }
+  }
+  return out;
+}
+
+function aggregate(rows){
+  const y = {};
+  for(const r of rows){
+    const yr = r.ts.slice(0,4), mo = +r.ts.slice(5,7) - 1;
+    if(!/^\d{4}$/.test(yr) || mo < 0 || mo > 11) continue;
+    const b = y[yr] || (y[yr] = { min:0, streams:0, months:new Array(12).fill(0),
+                                  A:new Map(), S:new Map() });
+    b.min += r.ms; b.streams++; b.months[mo] += r.ms;
+    const a = b.A.get(r.artist) || { ms:0, n:0 };
+    a.ms += r.ms; a.n++; b.A.set(r.artist, a);
+    const sk = r.name + '\u0000' + r.artist;
+    const s = b.S.get(sk) || { ms:0, n:0, name:r.name, artist:r.artist };
+    s.ms += r.ms; s.n++; b.S.set(sk, s);
+  }
+  const out = {};
+  for(const yr in y){
+    const b = y[yr];
+    out[yr] = {
+      min:b.min, streams:b.streams, months:b.months,
+      artists:[...b.A].map(([n,v]) => [n, v.ms, v.n])
+        .sort((a,c) => c[1]-a[1]).slice(0,50),
+      songs:[...b.S.values()].map(v => [v.name, v.artist, v.ms, v.n])
+        .sort((a,c) => c[2]-a[2]).slice(0,50)
+    };
+  }
+  return out;
+}
+
+async function importSpotifyExport(files){
+  let rows = [];
+  for(const f of files){
+    if(/\.zip$/i.test(f.name)) return { zip:true };
+    rows = rows.concat(parseExport(await f.text()));
+  }
+  rows = rows.filter(r => r.name && r.ms >= STREAM_MS);
+  if(!rows.length) return { none:true };
+
+  // one row per timestamp, in case the short and full exports overlap
+  const seen = new Set();
+  rows = rows.filter(r => {
+    const k = r.ts.slice(0,16) + '|' + r.name;
+    if(seen.has(k)) return false;
+    seen.add(k); return true;
+  }).sort((a,b) => a.ts.localeCompare(b.ts));
+
+  // A year is only overwritten by an import that knows more about it.
+  const fresh = aggregate(rows);
+  for(const yr in fresh){
+    if(!years[yr] || fresh[yr].streams >= years[yr].streams) years[yr] = fresh[yr];
+  }
+  saveYears();
+
+  // Keep the recent tail as individual plays. The export wins over anything the
+  // API collected in the same stretch, since it records real listening time
+  // rather than assuming every track ran to the end.
+  const maxTs = rows[rows.length-1].ts;
+  const cut = new Date(Date.now() - 370 * DAYMS).toISOString();
+  const tail = rows.filter(r => r.ts >= cut).map(r => ({
+    ts:r.ts, name:r.name, artist:r.artist, album:r.album, art:'', ms:r.ms, ctx:null
+  }));
+  plays = [...plays.filter(p => p.ts > maxTs), ...tail]
+    .sort((a,b) => b.ts.localeCompare(a.ts));
+  if(plays.length > 12000) plays.length = 12000;
+  savePlays();
+  DB.set('exportMax', maxTs);
+
+  return { rows:rows.length, years:Object.keys(fresh).sort(), kept:tail.length };
+}
+
+/* All-time totals span the summaries plus anything logged since. */
+function allTimeMs(){
+  const mx = DB.get('exportMax', '');
+  const fromYears = Object.values(years).reduce((n,y) => n + y.min, 0);
+  if(!fromYears) return totalMs();
+  return fromYears + plays.reduce((n,p) => n + (p.ts > mx ? p.ms : 0), 0);
 }
 
 /* ══ the racks ═════════════════════════════════════════════════
@@ -1985,7 +2191,8 @@ document.body.addEventListener('click', e => {
   const t = e.target.closest('[data-id],[data-log],[data-later],[data-rail],[data-crate],'+
     '[data-shelf-log],[data-shelf-rm],[data-edit],[data-editdone],[data-editreset],[data-mv],'+
     '[data-dlog],[data-dlater],[data-catretry],[data-rec],[data-recpick],[data-recmanual],'+
-    '[data-recsave],[data-spin],[data-unspin],[data-fmt],[data-media],[data-sleeve],[data-want]');
+    '[data-recsave],[data-spin],[data-unspin],[data-fmt],[data-media],[data-sleeve],[data-want],'+
+    '[data-yr]');
   if(!t) return;
   const d = t.dataset;
 
@@ -2022,6 +2229,9 @@ document.body.addEventListener('click', e => {
   if(d.sleeve !== undefined){ rec.sleeveG = rec.sleeveG === d.sleeve ? '' : d.sleeve;
     document.querySelectorAll('#rsleeve .chip').forEach(x =>
       x.classList.toggle('on', x === t && rec.sleeveG)); return }
+  if(d.yr){ shownYear = d.yr;
+    document.querySelectorAll('#yrpick .chip').forEach(x => x.classList.toggle('on', x === t));
+    drawYear(); return; }
   if(d.want !== undefined){ rec.want = d.want === '1';
     document.querySelectorAll('#rwant .chip').forEach(x => x.classList.toggle('on', x === t)); return }
   if(d.catretry){
@@ -2142,6 +2352,17 @@ function drawSettings(){
   $('#spbtn').onclick = on
     ? () => { DB.del('tok'); drawSettings(); toast('Disconnected') }
     : spotifyLogin;
+  const ys = Object.keys(years).sort();
+  const en = $('#expnote');
+  if(en) en.innerHTML = ys.length
+    ? `<span class="dot live"></span>${ys.length} year${ys.length>1?'s':''} imported `
+      + `(${esc(ys[0])}–${esc(ys[ys.length-1])}), `
+      + `${Object.values(years).reduce((n,y)=>n+y.streams,0).toLocaleString()} plays. `
+      + 'Re-importing a newer export is safe — a year is only replaced by one that knows more.'
+    : '<span class="dot"></span>Request yours at spotify.com/account/privacy and tick '
+      + '<b>Extended streaming history</b> — it reaches back to sign-up and can take up to '
+      + '30 days. Unzip it, then pick the .json files here. It backfills everything from '
+      + 'before you connected, and records real listening time rather than track length.';
   const last = DB.get('lastSync', 0);
   $('#playnote').textContent = plays.length
     ? `${plays.length} plays recorded${last ? ', last checked '+label(new Date(last).toISOString().slice(0,10)).toLowerCase() : ''}. `
@@ -2210,12 +2431,27 @@ $('#syncnow').onclick = async () => {
 
 $('#exp').onclick = () => {
   const blob = new Blob([JSON.stringify(
-    { v:3, clientId:CLIENT_ID, entries, shelf, plays, plnames, pins, vinyl }, null, 2)],
+    { v:4, clientId:CLIENT_ID, entries, shelf, plays, plnames, pins, vinyl, years }, null, 2)],
     { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `crateside-${today()}.json`; a.click(); URL.revokeObjectURL(a.href);
 };
+$('#impspot').onclick = () => $('#spotimp').click();
+$('#spotimp').onchange = async ev => {
+  const files = [...ev.target.files]; ev.target.value = '';
+  if(!files.length) return;
+  const btn = $('#impspot'); btn.textContent = 'Reading…';
+  let r;
+  try{ r = await importSpotifyExport(files) }
+  catch{ r = { none:true } }
+  btn.textContent = 'Import export files';
+  if(r.zip){ toast('Unzip it first, then pick the .json files'); return }
+  if(r.none){ toast("No listening history in those files"); return }
+  drawShelf(); drawRail(); drawSettings();
+  toast(`${r.rows.toLocaleString()} plays across ${r.years.length} year${r.years.length>1?'s':''}`);
+};
+
 $('#imp').onclick = () => $('#fileimp').click();
 $('#fileimp').onchange = ev => {
   const f = ev.target.files[0]; if(!f) return;
@@ -2241,8 +2477,10 @@ $('#fileimp').onchange = ev => {
         const hv = new Set(vinyl.map(v => v.id));
         vinyl = [...vinyl, ...d.vinyl.filter(v => !hv.has(v.id))];
       }
+      if(d.years) for(const yr in d.years)
+        if(!years[yr] || d.years[yr].streams >= years[yr].streams) years[yr] = d.years[yr];
       if(d.clientId && !CLIENT_ID){ CLIENT_ID = d.clientId; DB.set('clientId', d.clientId) }
-      saveEntries(); saveShelf(); savePlays(); savePins(); saveVinyl();
+      saveEntries(); saveShelf(); savePlays(); savePins(); saveVinyl(); saveYears();
       DB.set('plnames', plnames);
       rebuildLogged(); drawDiary(); drawShelf(); drawRack(); drawRail(); drawSettings();
       toast(`Imported ${d.entries.length}`);
