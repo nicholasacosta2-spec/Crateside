@@ -236,6 +236,7 @@ main{padding:0 18px 124px;max-width:640px;margin:0 auto}
 .barhead .nm{flex:1;min-width:0;font-size:14.5px;font-weight:500;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .barhead .vl{font-family:var(--mono);font-size:11px;color:var(--gold);flex:0 0 auto}
+.subnote{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:5px}
 .track{height:5px;background:var(--line);border-radius:3px;margin-top:7px;overflow:hidden}
 .fill{height:100%;border-radius:3px;
   background:linear-gradient(90deg,var(--ember),var(--gold))}
@@ -1088,6 +1089,35 @@ function playRank(days, mode){
   return [...m.values()].sort((a,b) => b.n - a.n || b.ms - a.ms).slice(0,5);
 }
 
+/* Minutes per artist across everything known: the per-year summaries from
+   your export, plus any play logged since that export was taken. The sheet's
+   picker chooses the window. */
+let minScope = 'all';
+
+function artistMins(scope){
+  const mx = DB.get('exportMax', '');
+  const yr = String(new Date().getFullYear());
+  const m = new Map();
+  const add = (name, ms, n) => {
+    if(!name) return;
+    const c = m.get(name) || { name, ms:0, n:0 };
+    c.ms += ms; c.n += n; m.set(name, c);
+  };
+  if(scope !== '30'){
+    for(const y in years){
+      if(scope === 'year' && y !== yr) continue;
+      for(const [n, ms, c] of years[y].artists) add(n, ms, c);
+    }
+  }
+  for(const p of plays){
+    const keep = scope === '30'   ? inWindow(p, 30)
+               : scope === 'year' ? (p.ts > mx && p.ts.startsWith(yr))
+               :                    (p.ts > mx);
+    if(keep) add(p.artist, p.ms, 1);
+  }
+  return [...m.values()].sort((a,b) => b.ms - a.ms);
+}
+
 function minsBy(mode, days){
   const m = new Map();
   for(const p of plays){
@@ -1131,7 +1161,7 @@ function crateCount(c){
   if(c.kind === 'rated') return top5(c.k).length;
   if(c.kind === 'later') return shelf.length;
   if(c.kind === 'plays') return playRank(c.days,'song').length;
-  if(c.kind === 'mins')  return minsBy(c.by).length;
+  if(c.kind === 'mins')  return c.by === 'artist' ? artistMins('all').length : minsBy(c.by).length;
   if(c.kind === 'wax')   return (pins[c.k] || []).filter(id => vinyl.some(v => v.id === id)).length;
   if(c.kind === 'spun')  return owned().filter(v => spinCount(v)).length;
   if(c.kind === 'want')  return wanted().length;
@@ -1362,19 +1392,36 @@ function openCrate(k){
     }
 
   } else if(c.kind === 'mins'){
-    const rows = minsBy(c.by);
+    const isArt = c.by === 'artist';
+    const rows = isArt ? artistMins(minScope) : minsBy(c.by);
+    const head = isArt ? `<div class="chips" id="mscope" style="margin-bottom:16px">
+      ${[['all','All time'],['year',new Date().getFullYear()],['30','Past 30 days']].map(([v,l]) =>
+        `<button class="chip${minScope===v?' on':''}" data-mscope="${v}">${esc(l)}</button>`).join('')}
+      </div>` : '';
     if(!rows.length){
-      body = `<div class="empty"><b>Nothing counted yet</b>
+      body = head + `<div class="empty"><b>Nothing counted yet</b>
         ${c.by === 'playlist'
-          ? 'Plays only carry a playlist when you start them from one — shuffle from an album or your library counts as loose.'
+          ? 'Plays only carry a playlist when you start them from one — shuffling an album or your library counts as loose. Spotify\'s export doesn\'t record playlists either, so this covers only what the app has collected directly.'
           : 'This fills from your listening history once Spotify is connected.'}</div>`;
     } else {
       const max = rows[0].ms;
-      body = rows.slice(0,25).map(r => `<div class="barwrap">
-        <div class="barhead"><span class="nm">${esc(r.name)}</span>
-          <span class="vl">${mins(r.ms)} min</span></div>
+      const tot = rows.reduce((n,r) => n + r.ms, 0);
+      const th = hrs(tot);
+      const summary = isArt
+        ? `<div class="bigstat" style="--ac:#F3C551;margin-bottom:16px">
+             <div class="n">${th.n}<small>${th.u}</small></div>
+             <div class="k">Across ${rows.length.toLocaleString()} artists</div></div>`
+        : '';
+      body = head + summary
+        + rows.slice(0,100).map((r,i) => `<div class="barwrap">
+        <div class="barhead"><span class="rank" style="width:22px;flex:0 0 22px">${i+1}</span>
+          <span class="nm">${esc(r.name)}</span>
+          <span class="vl">${mins(r.ms).toLocaleString()} min</span></div>
         <div class="track"><div class="fill" style="width:${Math.max(2,(r.ms/max*100)).toFixed(1)}%"></div></div>
-      </div>`).join('');
+        ${r.n ? `<div class="subnote">${r.n.toLocaleString()} play${r.n>1?'s':''}</div>` : ''}
+      </div>`).join('')
+        + (rows.length > 100 ? `<p class="note" style="margin-top:14px">Showing the top 100 of
+            ${rows.length.toLocaleString()}.</p>` : '');
     }
   }
 
@@ -1383,7 +1430,9 @@ function openCrate(k){
     <p class="sheetsub">${
       c.kind === 'rated' ? `${(pins[k]||[]).length} of 5 chosen`
       : c.kind === 'plays' ? `Counted over the last ${c.days} days`
-      : c.kind === 'mins' ? 'All time'
+      : c.kind === 'mins' ? (c.by === 'artist'
+          ? (Object.keys(years).length ? 'Your full history' : 'Since you connected Spotify')
+          : 'Collected by the app only')
       : c.kind === 'wax'  ? `${(pins[k]||[]).length} of 5 chosen`
       : c.kind === 'spun' ? 'Your own turntable, not Spotify'
       : c.kind === 'want' ? `${wanted().length} on the hunt`
@@ -1444,7 +1493,7 @@ function drawYear(){
       <div class="bigstat" style="--ac:#3FC7C4"><div class="n">${y.streams.toLocaleString()}</div>
         <div class="k">Streams</div></div>
       <div class="bigstat" style="--ac:#E9739F"><div class="n">${y.artists.length}${
-        y.artists.length===50?'+':''}</div><div class="k">Artists</div></div>
+        y.artists.length===300?'+':''}</div><div class="k">Artists</div></div>
     </div>
 
     <div class="flabel" style="margin-top:22px"><span>By month</span>
@@ -1655,9 +1704,9 @@ function aggregate(rows){
     out[yr] = {
       min:b.min, streams:b.streams, months:b.months,
       artists:[...b.A].map(([n,v]) => [n, v.ms, v.n])
-        .sort((a,c) => c[1]-a[1]).slice(0,50),
+        .sort((a,c) => c[1]-a[1]).slice(0,300),
       songs:[...b.S.values()].map(v => [v.name, v.artist, v.ms, v.n])
-        .sort((a,c) => c[2]-a[2]).slice(0,50)
+        .sort((a,c) => c[2]-a[2]).slice(0,300)
     };
   }
   return out;
@@ -2192,7 +2241,7 @@ document.body.addEventListener('click', e => {
     '[data-shelf-log],[data-shelf-rm],[data-edit],[data-editdone],[data-editreset],[data-mv],'+
     '[data-dlog],[data-dlater],[data-catretry],[data-rec],[data-recpick],[data-recmanual],'+
     '[data-recsave],[data-spin],[data-unspin],[data-fmt],[data-media],[data-sleeve],[data-want],'+
-    '[data-yr]');
+    '[data-yr],[data-mscope]');
   if(!t) return;
   const d = t.dataset;
 
@@ -2229,6 +2278,7 @@ document.body.addEventListener('click', e => {
   if(d.sleeve !== undefined){ rec.sleeveG = rec.sleeveG === d.sleeve ? '' : d.sleeve;
     document.querySelectorAll('#rsleeve .chip').forEach(x =>
       x.classList.toggle('on', x === t && rec.sleeveG)); return }
+  if(d.mscope){ minScope = d.mscope; openCrate($('#sheet').dataset.openk); return }
   if(d.yr){ shownYear = d.yr;
     document.querySelectorAll('#yrpick .chip').forEach(x => x.classList.toggle('on', x === t));
     drawYear(); return; }
